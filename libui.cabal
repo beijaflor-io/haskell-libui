@@ -68,16 +68,24 @@ library
       ./vendor/libui/darwin/util.m
       ./vendor/libui/darwin/window.m
   build-depends:
-      base >=4.8 && <4.9
+                    base >=4.8
+                , async
+                , mtl
+                , transformers
   exposed-modules:
       Graphics.LibUI
   default-language: Haskell2010
+  ghc-options: -threaded
 
 executable button-example
   main-is: ButtonExample.hs
   hs-source-dirs:
       examples
   build-depends:
-      base
-    , libui
+                      base
+                , async
+                , libui
+                , mtl
+                , transformers
   default-language: Haskell2010
+  ghc-options: -threaded

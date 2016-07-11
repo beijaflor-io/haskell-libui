@@ -1,0 +1,3 @@
+[submodule "vendor/libui"]
+	path = vendor/libui
+	url = https://github.com/andlabs/libui

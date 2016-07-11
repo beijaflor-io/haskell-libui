@@ -1,0 +1,83 @@
+-- This file has been generated from package.yaml by hpack version 0.14.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:                libui
+version:             0.1.0.0
+homepage:            https://github.com/beijaflor-io/haskell-libui
+license:             MIT
+license-file:        LICENSE
+author:              Pedro Tacla Yamada
+maintainer:          tacla.yamada@gmail.com
+category:            Graphics
+build-type:          Simple
+cabal-version:       >= 1.10
+
+library
+  frameworks: Foundation CoreFoundation AppKit Cocoa
+  hs-source-dirs:
+      src
+  include-dirs:
+      ./vendor/libui/common/controlsigs.h
+      ./vendor/libui/common/uipriv.h
+      ./vendor/libui/darwin/uipriv_darwin.h
+      ./vendor/libui/ui.h
+      ./vendor/libui/ui_darwin.h
+      ./vendor/libui/uitable.h
+  c-sources:
+      ./vendor/libui/common/areaevents.c
+      ./vendor/libui/common/control.c
+      ./vendor/libui/common/debug.c
+      ./vendor/libui/common/matrix.c
+      ./vendor/libui/common/shouldquit.c
+      ./vendor/libui/common/userbugs.c
+      ./vendor/libui/darwin/alloc.m
+      ./vendor/libui/darwin/area.m
+      ./vendor/libui/darwin/areaevents.m
+      ./vendor/libui/darwin/autolayout.m
+      ./vendor/libui/darwin/box.m
+      ./vendor/libui/darwin/button.m
+      ./vendor/libui/darwin/checkbox.m
+      ./vendor/libui/darwin/colorbutton.m
+      ./vendor/libui/darwin/combobox.m
+      ./vendor/libui/darwin/control.m
+      ./vendor/libui/darwin/datetimepicker.m
+      ./vendor/libui/darwin/debug.m
+      ./vendor/libui/darwin/draw.m
+      ./vendor/libui/darwin/drawtext.m
+      ./vendor/libui/darwin/editablecombo.m
+      ./vendor/libui/darwin/entry.m
+      ./vendor/libui/darwin/fontbutton.m
+      ./vendor/libui/darwin/form.m
+      ./vendor/libui/darwin/grid.m
+      ./vendor/libui/darwin/group.m
+      ./vendor/libui/darwin/label.m
+      ./vendor/libui/darwin/main.m
+      ./vendor/libui/darwin/map.m
+      ./vendor/libui/darwin/menu.m
+      ./vendor/libui/darwin/multilineentry.m
+      ./vendor/libui/darwin/progressbar.m
+      ./vendor/libui/darwin/radiobuttons.m
+      ./vendor/libui/darwin/scrollview.m
+      ./vendor/libui/darwin/separator.m
+      ./vendor/libui/darwin/slider.m
+      ./vendor/libui/darwin/spinbox.m
+      ./vendor/libui/darwin/stddialogs.m
+      ./vendor/libui/darwin/tab.m
+      ./vendor/libui/darwin/text.m
+      ./vendor/libui/darwin/util.m
+      ./vendor/libui/darwin/window.m
+  build-depends:
+      base >=4.8 && <4.9
+  exposed-modules:
+      Graphics.LibUI
+  default-language: Haskell2010
+
+executable button-example
+  main-is: ButtonExample.hs
+  hs-source-dirs:
+      examples
+  build-depends:
+      base
+    , libui
+  default-language: Haskell2010

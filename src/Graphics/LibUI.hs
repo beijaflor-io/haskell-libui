@@ -19,6 +19,7 @@ import           Foreign                  hiding (void)
 import qualified Foreign                  as Foreign
 import           Foreign.C
 
+import qualified Graphics.LibUI.Types
 import           Graphics.LibUI.FFI
 
 -- data UIControl = UIControlWindow UIWindow

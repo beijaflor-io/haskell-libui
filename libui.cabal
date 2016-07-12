@@ -19,9 +19,9 @@ extra-tmp-files:
     ./vendor/libui/darwin/uipriv_darwin.h
 
 library
+  -- ld-options: -Wl,-rpath,'$ORIGIN'
+  -- ghc-options: -optl-Wl,-rpath,'$ORIGIN'"
   frameworks: Foundation CoreFoundation AppKit Cocoa
-  hs-source-dirs:
-      src
   -- extra-libraries: ui
   extra-lib-dirs: /Users/yamadapc/program/github.com/beijaflor-io/haskell-libui/vendor/libui/build/out/
   include-dirs: .  ./vendor/libui/ ./vendor/libui/common/ ./vendor/libui/darwin/
@@ -77,12 +77,15 @@ library
       ./vendor/libui/darwin/util.m
       ./vendor/libui/darwin/window.m
   build-depends: base >=4.8
+               , reflex
                , async
                , mtl
                , transformers
   exposed-modules: Graphics.LibUI
                  , Graphics.LibUI.FFI
-
+                 , Graphics.LibUI.MonadUI
+  hs-source-dirs:
+      src
   default-language: Haskell2010
   ghc-options: -threaded
 
@@ -90,11 +93,11 @@ executable button-example
   main-is: ButtonExample.hs
   hs-source-dirs:
       examples
-  build-depends:
-                      base
-                , async
-                , libui
-                , mtl
-                , transformers
+  build-depends: base
+               , reflex
+               , async
+               , libui
+               , mtl
+               , transformers
   default-language: Haskell2010
   ghc-options: -threaded

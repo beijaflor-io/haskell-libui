@@ -1,5 +1,6 @@
-{-# LANGUAGE OverloadedStrings         #-}
-{-# LANGUAGE RecordWildCards         #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE TupleSections     #-}
 module Graphics.LibUI.Types
   where
 
@@ -12,63 +13,45 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans
 import           Data.String
 import           Foreign                  hiding (void)
-import qualified Foreign                  as Foreign
+import qualified Foreign
 import           Foreign.C
 
 import           Graphics.LibUI.FFI
+import           Graphics.LibUI.MonadUI
 
--- data UIControl = UIControlWindow UIWindow
---                | UIControlButton UIButton
---                | UIControlBox UIBox
---                | UIControlCheckbox UICheckbox
---                | UIControlEntry UIEntry
---                | UIControlLabel UILabel
---                | UIControlTab UITab
---                | UIControlGroup UIGroup
---                | UIControlSpinbox UISpinbox
---                | UIControlSlider UISlider
---                | UIControlProgressBar UIProgressBar
---                | UIControlSeparator UISeparator
---                | UIControlCombobox UICombobox
---                | UIControlEditableCombobox UIEditableCombobox
---                | UIControlRadioButtons UIRadioButtons
---                | UIControlMultlineEntry UIMultlineEntry
---                | UIControlMenuItem UIMenuItem
---                | UIControlMenu UIMenu
+-- |
+-- Something that can be rendered with libui
+class ToCUIControl c where
+    toCUIControl :: c -> IO CUIControl
 
-data Term a = Term { runTerm :: IO CUIControl
-                   }
+data UIControl = UIControlWindow UIWindow
+               | UIControlButton UIButton
+               | UIControlBox UIBox
+               | UIControlCheckbox UICheckbox
+               | UIControlEntry UIEntry
+               | UIControlLabel UILabel
+               | UIControlTab UITab
+               | UIControlGroup UIGroup
+               | UIControlSpinbox UISpinbox
+               | UIControlSlider UISlider
+               | UIControlProgressBar UIProgressBar
+               | UIControlSeparator UISeparator
+               | UIControlCombobox UICombobox
+               | UIControlEditableCombobox UIEditableCombobox
+               | UIControlRadioButtons UIRadioButtons
+               | UIControlMultlineEntry UIMultlineEntry
+               | UIControlMenuItem UIMenuItem
+               | UIControlMenu UIMenu
 
-term :: ToCUIControl t => t -> Term t
-term t = Term (toCUIControl t)
-
-data UI a = UI { runUI :: IO (a, [CUIControl])
-               }
-
-instance Functor UI where
-    f `fmap` ui = UI $ runUI ui >>= \(a, c) -> return (f a, c)
-
-instance Monoid a => Monoid (UI a) where
-    mempty = UI (return (mempty, []))
-    ui1 `mappend` ui2 = UI $ do
-        (a, cui1) <- runUI ui1
-        (b, cui2) <- runUI ui2
-        return (a `mappend` b, cui1 ++ cui2)
-
-instance Applicative UI where
-    pure = return
-    (<*>) = ap
-
-instance Monad UI where
-    return x = UI (return (x, []))
-    ui >>= a = UI $ do
-        (r, cui1) <- runUI ui
-        (r', cui2) <- runUI $ a r
-        return (r', cui1 ++ cui2)
-
+wrap :: ToCUIControl c => c -> UI ()
 wrap toCUI = UI $ do
     cui <- toCUIControl toCUI
     return ((), [cui])
+
+wrapEmpty :: ToCUIControl c => c -> UI ()
+wrapEmpty toCUI = UI $ do
+    cui <- toCUIControl toCUI
+    return ((), [])
 
 runUILoop :: UI a -> IO ()
 runUILoop ui = run >> putStrLn "I'm still here"
@@ -95,7 +78,7 @@ runUILoop ui = run >> putStrLn "I'm still here"
         takeMVar mvRunning `catch` \UserInterrupt -> do
             print "interrupt"
             void (abort mvRunning)
-    loop mvRunning = do
+    loop mvRunning =
         c_uiMain
         -- e <- isEmptyMVar mvRunning
         -- if True -- || e
@@ -110,20 +93,24 @@ runUILoop ui = run >> putStrLn "I'm still here"
         tryPutMVar mvRunning ()
         return 0
 
+window :: String -> Int -> Int -> Bool -> UI () -> UI ()
 window title width height hasMenubar child = UI $ do
     c <- toCUIControl $ UIWindow title width height hasMenubar child
     return ((), [c])
 
+button :: String -> UI ()
 button title = wrap (UIButton title)
 
+vbox :: UI a -> UI a
 vbox ui = UI $ do
     (x, cs) <- runUI ui
     c <- toCUIControl $ UIVerticalBox 0 (map (False,) cs)
     return (x, [c])
 
+menu :: String -> [UIMenuItem] -> UI ()
 menu name items = UI $ do
     c <- toCUIControl $ UIMenu name items
-    c `seq` (return ())
+    c `seq` return ()
     return ((), [])
 
 stuff :: IO ()
@@ -138,10 +125,17 @@ stuff = runUILoop ui
         window "Stuff" 640 300 True $ vbox $ do
             button "Click me 1"
             button "Click me 2"
+            button "Click me 3"
         -- button "Click me"
 
-class ToCUIControl c where
-    toCUIControl :: c -> IO CUIControl
+-- ** Windows
+
+data UIWindow = UIWindow { uiWindowTitle      :: String
+                         , uiWindowWidth      :: Int
+                         , uiWindowHeight     :: Int
+                         , uiWindowHasMenubar :: Bool
+                         , uiWindowChild      :: UI ()
+                         }
 
 instance ToCUIControl UIWindow where
     toCUIControl UIWindow{..} = do
@@ -156,83 +150,15 @@ instance ToCUIControl UIWindow where
             _ -> return ()
         return w
 
+-- ** Buttons
+
+data UIButton = UIButton { uiButtonText :: String
+                         }
+
 instance ToCUIControl UIButton where
     toCUIControl UIButton{..} =
         join $ c_uiNewButton
             <$> newCString uiButtonText
-
-instance ToCUIControl UIBox where
-    toCUIControl UIHorizontalBox{..} = do
-        b <- c_uiNewHorizontalBox
-        c_uiBoxSetPadded b (fromIntegral uiBoxPadding)
-        mapM_ (uncurry (c_uiBoxAppend b))
-            (map (\(b, c) -> (c, if b then 1 else 0)) uiBoxChildren)
-        return b
-    toCUIControl UIVerticalBox{..} = do
-        b <- c_uiNewVerticalBox
-        c_uiBoxSetPadded b (fromIntegral uiBoxPadding)
-        mapM_ (uncurry (c_uiBoxAppend b))
-            (map (\(b, c) -> (c, if b then 1 else 0)) uiBoxChildren)
-        return b
-
-instance ToCUIControl UICheckbox where
-    toCUIControl UICheckbox{..} = do
-        c <- c_uiNewCheckbox =<< newCString uiCheckboxText
-        c_uiCheckboxSetChecked c (if uiCheckboxChecked then 1 else 0)
-        return c
-
-instance ToCUIControl UIEntry where
-    toCUIControl UIEntry{..} = do
-        e <- c_uiNewEntry
-        c_uiEntrySetText e =<< newCString uiEntryText
-        c_uiEntrySetReadOnly e (if uiEntryReadOnly then 1 else 0)
-        return e
-
-instance ToCUIControl UILabel where
-    toCUIControl UILabel{..} = do
-        c_uiNewLabel =<< newCString uiLabelText
-
-instance ToCUIControl UITab where
-    toCUIControl UITab{..} = do
-        t <- c_uiNewTab
-        c_uiTabSetMargined t (fromIntegral uiTabMargin) 0
-        mapM_ (uncurry (c_uiTabAppend t)) =<< (forM uiTabChildren $ \(n, c) -> do
-            n' <- newCString n
-            return (n', c))
-        return t
-
-instance ToCUIControl UIGroup where
-    toCUIControl UIGroup{..} = do
-        g <- c_uiNewGroup =<< newCString uiGroupTitle
-        c_uiGroupSetMargined g (fromIntegral uiGroupMargin)
-        c_uiGroupSetChild g uiGroupChild
-        return g
-
-instance ToCUIControl UIMenu where
-    toCUIControl UIMenu{..} = do
-        m <- c_uiNewMenu =<< newCString uiMenuName
-        forM_ uiMenuItems $ \item ->
-            appendMenuItem m item
-        print "Menu created"
-        return m
-
-appendMenuItem m UIMenuItem{..} = do
-    ctext <- newCString uiMenuItemText
-    c_uiMenuAppendItem m ctext
-appendMenuItem m UIMenuItemQuit = do
-    c_uiMenuAppendQuitItem m
-
--- getCUIControl _ = undefined
-
-data UIWindow = UIWindow { uiWindowTitle      :: String
-                         , uiWindowWidth      :: Int
-                         , uiWindowHeight     :: Int
-                         , uiWindowHasMenubar :: Bool
-                         , uiWindowChild      :: UI ()
-                         }
-
-data UIButton = UIButton { uiButtonText :: String
-                         }
 
 data UIBox = UIHorizontalBox { uiBoxPadding  :: Int
                              , uiBoxChildren :: [(Bool, CUIControl)]
@@ -241,9 +167,38 @@ data UIBox = UIHorizontalBox { uiBoxPadding  :: Int
                            , uiBoxChildren :: [(Bool, CUIControl)]
                            }
 
+instance ToCUIControl UIBox where
+    toCUIControl UIHorizontalBox{..} = do
+        b <- c_uiNewHorizontalBox
+        c_uiBoxSetPadded b (fromIntegral uiBoxPadding)
+        forM_ uiBoxChildren $ \(bc, c) -> do
+            let bc' = if bc then 1 else 0
+            c_uiBoxAppend b c bc'
+        return b
+    toCUIControl UIVerticalBox{..} = do
+        b <- c_uiNewVerticalBox
+        c_uiBoxSetPadded b (fromIntegral uiBoxPadding)
+        forM_ uiBoxChildren $ \(bc, c) -> do
+            let bc' = if bc then 1 else 0
+            c_uiBoxAppend b c bc'
+        return b
+
+-- |
+-- Appends a menu item to a CUIBox
+appendItem UIVerticalBox{..} b =
+    forM_ uiBoxChildren $ \(bc, c) -> do
+        let bc' = if bc then 1 else 0
+        c_uiBoxAppend b c bc'
+
 data UICheckbox = UICheckbox { uiCheckboxChecked :: Bool
                              , uiCheckboxText    :: String
                              }
+
+instance ToCUIControl UICheckbox where
+    toCUIControl UICheckbox{..} = do
+        c <- c_uiNewCheckbox =<< newCString uiCheckboxText
+        c_uiCheckboxSetChecked c (if uiCheckboxChecked then 1 else 0)
+        return c
 
 data UIEntry = UIEntry { uiEntryReadOnly :: Bool
                        , uiEntryText     :: String
@@ -251,17 +206,45 @@ data UIEntry = UIEntry { uiEntryReadOnly :: Bool
              -- TODO - | UIPasswordEntry {
              --                   }
 
+instance ToCUIControl UIEntry where
+    toCUIControl UIEntry{..} = do
+        e <- c_uiNewEntry
+        c_uiEntrySetText e =<< newCString uiEntryText
+        c_uiEntrySetReadOnly e (if uiEntryReadOnly then 1 else 0)
+        return e
+
 data UILabel = UILabel { uiLabelText :: String
                        }
+
+instance ToCUIControl UILabel where
+    toCUIControl UILabel{..} =
+        c_uiNewLabel =<< newCString uiLabelText
+
 
 data UITab = UITab { uiTabMargin   :: Int
                    , uiTabChildren :: [(String, CUIControl)]
                    }
 
+instance ToCUIControl UITab where
+    toCUIControl UITab{..} = do
+        t <- c_uiNewTab
+        c_uiTabSetMargined t (fromIntegral uiTabMargin) 0
+        forM_ uiTabChildren $ \(n, c) -> do
+            n' <- newCString n
+            c_uiTabAppend t n' c
+        return t
+
 data UIGroup = UIGroup { uiGroupTitle  :: String
                        , uiGroupMargin :: Int
                        , uiGroupChild  :: CUIControl
                        }
+
+instance ToCUIControl UIGroup where
+    toCUIControl UIGroup{..} = do
+        g <- c_uiNewGroup =<< newCString uiGroupTitle
+        c_uiGroupSetMargined g (fromIntegral uiGroupMargin)
+        c_uiGroupSetChild g uiGroupChild
+        return g
 
 data UISpinbox = UISpinbox { uiSpinboxValue :: Int
                            , uiSpinboxMin   :: Int
@@ -292,6 +275,37 @@ data UIMultlineEntry = UIMultilineEntry { uiMultilineEntryText     :: String
                                         , uiMultilineEntryReadOnly :: Bool
                                         }
 
+-- ** Menus
+
+-- |
+-- The application menu. Either a window menu, as in Windows/Linux or the top
+-- bar menu in OSX.
+--
+-- Renders with `uiMenu` 'c_uiNewMenu', using 'CUIMenu'
+data UIMenu = UIMenu { uiMenuName  :: String
+                     , uiMenuItems :: [UIMenuItem]
+                     }
+
+
+instance ToCUIControl UIMenu where
+    toCUIControl UIMenu{..} = do
+        m <- c_uiNewMenu =<< newCString uiMenuName
+        forM_ uiMenuItems $ \item ->
+            appendMenuItem m item
+        print "Menu created"
+        return m
+
+-- |
+-- Appends a menu item to a CUIMenu
+appendMenuItem :: CUIMenu -> UIMenuItem -> IO CUIMenuItem
+appendMenuItem m UIMenuItem{..} = do
+    ctext <- newCString uiMenuItemText
+    c_uiMenuAppendItem m ctext
+appendMenuItem m UIMenuItemQuit =
+    c_uiMenuAppendQuitItem m
+
+-- |
+-- Menu items
 data UIMenuItem = UIMenuItem { uiMenuItemEnabled :: Bool
                              , uiMenuItemChecked :: Bool
                              , uiMenuItemText    :: String
@@ -304,6 +318,3 @@ instance IsString UIMenuItem where
                               , uiMenuItemText = s
                               }
 
-data UIMenu = UIMenu { uiMenuName  :: String
-                     , uiMenuItems :: [UIMenuItem]
-                     }

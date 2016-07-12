@@ -83,6 +83,7 @@ library
                , transformers
   exposed-modules: Graphics.LibUI
                  , Graphics.LibUI.FFI
+                 , Graphics.LibUI.Types
                  , Graphics.LibUI.MonadUI
   hs-source-dirs:
       src

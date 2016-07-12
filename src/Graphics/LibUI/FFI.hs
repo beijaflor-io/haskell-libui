@@ -122,8 +122,15 @@ foreign import capi "ui.h uiNewButton"
 -- ** CUIBox <- uiBox
 type CUIBox = VoidPtr
 
+-- |
+-- Appends an item to the box
 foreign import capi "ui.h uiBoxAppend"
-    c_uiBoxAppend :: CUIBox -> CUIControl -> CInt -> IO ()
+    c_uiBoxAppend
+        :: CUIBox
+        -> CUIControl
+        -> CInt
+        -- ^ Whether the box is stretchy
+        -> IO ()
 
 foreign import capi "ui.h uiBoxDelete"
     c_uiBoxDelete :: CUIBox -> CInt -> IO ()
@@ -201,7 +208,14 @@ foreign import capi "ui.h uiNewLabel"
 -- ** CUITab <- uiTab
 type CUITab = VoidPtr
 foreign import capi "ui.h uiTabAppend"
-    c_uiTabAppend :: CUITab -> CString -> CUIControl -> IO ()
+    c_uiTabAppend
+      :: CUITab
+      -- ^ The tab group pointer
+      -> CString
+      -- ^ The tab title
+      -> CUIControl
+      -- ^ The tab contents
+      -> IO ()
 
 foreign import capi "ui.h uiTabInsertAt"
     c_uiTabInsertAt :: CUITab -> CString -> CInt -> CUIControl -> IO ()
@@ -338,6 +352,37 @@ foreign import capi "ui.h uiRadioButtonsOnSelected"
 
 foreign import capi "ui.h uiNewRadioButtons"
     c_uiNewRadioButtons :: IO CUIRadioButtons
+
+-- ** CUIForm <- uiForm
+type CUIForm = VoidPtr
+foreign import capi "ui.h uiFormAppend"
+    c_uiFormAppend
+      :: CUIForm
+      -- ^ The form pointer
+      -> CString
+      -- ^ The input label
+      -> CUIControl
+      -- ^ The input control
+      -> CInt
+      -- ^ Whether the child is stretchy
+      -> IO ()
+
+foreign import capi "ui.h uiFormDelete"
+    c_uiFormDelete
+      :: CUIForm
+      -- ^ The form pointer
+      -> CInt
+      -- ^ The index to remove
+      -> IO ()
+
+foreign import capi "ui.h uiFormPadded"
+    c_uiFormPadded :: CUIForm -> IO CInt
+
+foreign import capi "ui.h uiFormSetPadded"
+    c_uiFormSetPadded :: CUIForm -> CInt -> IO ()
+
+foreign import capi "ui.h uiNewForm"
+    c_uiNewForm :: IO CUIForm
 
 -- ** CUIMultilineEntry <- uiMultilineEntry
 type CUIMultilineEntry = VoidPtr

@@ -43,16 +43,6 @@ data UIControl = UIControlWindow UIWindow
                | UIControlMenuItem UIMenuItem
                | UIControlMenu UIMenu
 
-wrap :: ToCUIControl c => c -> UI ()
-wrap toCUI = UI $ do
-    cui <- toCUIControl toCUI
-    return ((), [cui])
-
-wrapEmpty :: ToCUIControl c => c -> UI ()
-wrapEmpty toCUI = UI $ do
-    cui <- toCUIControl toCUI
-    return ((), [])
-
 runUILoop :: UI a -> IO ()
 runUILoop ui = run >> putStrLn "I'm still here"
   where
@@ -95,23 +85,74 @@ runUILoop ui = run >> putStrLn "I'm still here"
 
 window :: String -> Int -> Int -> Bool -> UI () -> UI ()
 window title width height hasMenubar child = UI $ do
-    c <- toCUIControl $ UIWindow title width height hasMenubar child
+    c <- toCUIControl $ UIWindow title width height hasMenubar 1 child
     return ((), [c])
 
 button :: String -> UI ()
 button title = wrap (UIButton title)
 
+wrap :: ToCUIControl c => c -> UI ()
+wrap toCUI = UI $ do
+    cui <- toCUIControl toCUI
+    return ((), [cui])
+
+wrapEmpty :: ToCUIControl c => c -> UI ()
+wrapEmpty toCUI = UI $ do
+    cui <- toCUIControl toCUI
+    return ((), [])
+
 vbox :: UI a -> UI a
-vbox ui = UI $ do
+vbox = box UIVerticalBox
+
+hbox :: UI a -> UI a
+hbox = box UIHorizontalBox
+
+box :: (Num a1, ToCUIControl r) => (a1 -> [UIBoxChild] -> r) -> UI a -> UI a
+box boxtype ui = UI $ do
     (x, cs) <- runUI ui
-    c <- toCUIControl $ UIVerticalBox 0 (map (False,) cs)
+    c <- toCUIControl $ boxtype 1
+        (map (UIBoxChild False) cs)
     return (x, [c])
+
 
 menu :: String -> [UIMenuItem] -> UI ()
 menu name items = UI $ do
     c <- toCUIControl $ UIMenu name items
-    c `seq` return ()
     return ((), [])
+
+group :: String -> UI () -> UI ()
+group title items = UI $ do
+    c <- toCUIControl $ UIGroup title 1 (vbox items)
+    return ((), [c])
+
+progressbar value = wrap (UIProgressBar value)
+
+slider value min max = wrap (UISlider value min max)
+
+spinbox value min max = wrap (UISpinbox value min max)
+
+tabs :: [UI String] -> UI ()
+tabs ts = UI $ do
+    ts' <- forM ts $ \t -> do
+        (r, (c:cs)) <- runUI t
+        return (r, c)
+    c <- toCUIControl (UITab 1 ts')
+    return ((), [c])
+
+tab :: t -> UI a -> UI t
+tab title ui = UI $ do
+    (_, c) <- runUI $ vbox ui
+    print c
+    return (title, c)
+
+checkbox t = wrap (UICheckbox False t)
+label t = wrap (UILabel t)
+
+entry t = wrap (UIEntry False t)
+searchEntry t = wrap (UISearchEntry False t)
+passwordEntry t = wrap (UISearchEntry False t)
+
+form cs = wrap (UIForm cs)
 
 stuff :: IO ()
 stuff = runUILoop ui
@@ -122,11 +163,22 @@ stuff = runUILoop ui
                     , "Save"
                     , UIMenuItemQuit
                     ]
-        window "Stuff" 640 300 True $ vbox $ do
-            button "Click me 1"
-            button "Click me 2"
-            button "Click me 3"
-        -- button "Click me"
+        window "libui Control Gallery" 640 300 True $
+            tabs $ [ tab "Basic Controls" $ do
+                           hbox $ do
+                               button "Button"
+                               checkbox "Checkbox"
+                           label "This is a label. Right now, labels can only span one line."
+                           group "Entries" $ do
+                               form $ [ ("Entry", (entry ""))
+                                      , ("Entry", (entry ""))
+                                      , ("Search Entry", (searchEntry ""))
+                                      ]
+                   , tab "Basic Controls" $ hbox $ do
+                           group "Numbers" (return ())
+                           group "Lists" (return ())
+                   , tab "Data Choosers" $ hbox (return ())
+                   ]
 
 -- ** Windows
 
@@ -134,6 +186,7 @@ data UIWindow = UIWindow { uiWindowTitle      :: String
                          , uiWindowWidth      :: Int
                          , uiWindowHeight     :: Int
                          , uiWindowHasMenubar :: Bool
+                         , uiWindowMargin     :: Int
                          , uiWindowChild      :: UI ()
                          }
 
@@ -144,9 +197,16 @@ instance ToCUIControl UIWindow where
             <*> return (fromIntegral uiWindowWidth)
             <*> return (fromIntegral uiWindowHeight)
             <*> return (if uiWindowHasMenubar then 1 else 0)
+
+        c_uiWindowSetMargined w (fromIntegral uiWindowMargin)
+
         (_, cs) <- runUI uiWindowChild
         case cs of
-            (c:_) -> c_uiWindowSetChild w c
+            [c] -> c_uiWindowSetChild w c
+            (c:cs) -> do
+                vb <- c_uiNewVerticalBox
+                forM_ cs $ \c -> c_uiBoxAppend vb c 1
+                c_uiWindowSetChild w vb
             _ -> return ()
         return w
 
@@ -161,34 +221,41 @@ instance ToCUIControl UIButton where
             <$> newCString uiButtonText
 
 data UIBox = UIHorizontalBox { uiBoxPadding  :: Int
-                             , uiBoxChildren :: [(Bool, CUIControl)]
+                             , uiBoxChildren :: [UIBoxChild]
                              }
            | UIVerticalBox { uiBoxPadding  :: Int
-                           , uiBoxChildren :: [(Bool, CUIControl)]
+                           , uiBoxChildren :: [UIBoxChild]
                            }
 
+data UIBoxChild = UIBoxChild { uiBoxChildStretchy :: Bool
+                             , uiBoxChildControl  :: CUIControl
+                             }
+
 instance ToCUIControl UIBox where
-    toCUIControl UIHorizontalBox{..} = do
-        b <- c_uiNewHorizontalBox
-        c_uiBoxSetPadded b (fromIntegral uiBoxPadding)
-        forM_ uiBoxChildren $ \(bc, c) -> do
-            let bc' = if bc then 1 else 0
-            c_uiBoxAppend b c bc'
-        return b
-    toCUIControl UIVerticalBox{..} = do
-        b <- c_uiNewVerticalBox
-        c_uiBoxSetPadded b (fromIntegral uiBoxPadding)
-        forM_ uiBoxChildren $ \(bc, c) -> do
-            let bc' = if bc then 1 else 0
-            c_uiBoxAppend b c bc'
+    toCUIControl ui = do
+        b <- case ui of
+            UIVerticalBox{} -> c_uiNewVerticalBox
+            UIHorizontalBox{} -> c_uiNewHorizontalBox
+        c_uiBoxSetPadded b (fromIntegral (uiBoxPadding ui))
+        forM_ (uiBoxChildren ui) $ \UIBoxChild{..} -> do
+            let uiBoxChildStretchy' = if uiBoxChildStretchy then 1 else 0
+            c_uiBoxAppend b uiBoxChildControl uiBoxChildStretchy'
         return b
 
--- |
+    -- toCUIControl UIVerticalBox{..} = do
+    --     b <- c_uiNewVerticalBox
+    --     c_uiBoxSetPadded b (fromIntegral uiBoxPadding)
+    --     forM_ uiBoxChildren $ \(bc, c) -> do
+    --         let bc' = if bc then 1 else 0
+    --         c_uiBoxAppend b c bc'
+    --     return b
+
+-- -- |
 -- Appends a menu item to a CUIBox
-appendItem UIVerticalBox{..} b =
-    forM_ uiBoxChildren $ \(bc, c) -> do
-        let bc' = if bc then 1 else 0
-        c_uiBoxAppend b c bc'
+-- appendItem UIVerticalBox{..} b =
+--     forM_ uiBoxChildren $ \(bc, c) -> do
+--         let bc' = if bc then 1 else 0
+--         c_uiBoxAppend b c bc'
 
 data UICheckbox = UICheckbox { uiCheckboxChecked :: Bool
                              , uiCheckboxText    :: String
@@ -203,12 +270,26 @@ instance ToCUIControl UICheckbox where
 data UIEntry = UIEntry { uiEntryReadOnly :: Bool
                        , uiEntryText     :: String
                        }
-             -- TODO - | UIPasswordEntry {
-             --                   }
+             | UIPasswordEntry { uiEntryReadOnly :: Bool
+                               , uiEntryText     :: String
+                               }
+             | UISearchEntry { uiEntryReadOnly :: Bool
+                             , uiEntryText     :: String
+                             }
 
 instance ToCUIControl UIEntry where
     toCUIControl UIEntry{..} = do
         e <- c_uiNewEntry
+        c_uiEntrySetText e =<< newCString uiEntryText
+        c_uiEntrySetReadOnly e (if uiEntryReadOnly then 1 else 0)
+        return e
+    toCUIControl UIPasswordEntry{..} = do
+        e <- c_uiNewPasswordEntry
+        c_uiEntrySetText e =<< newCString uiEntryText
+        c_uiEntrySetReadOnly e (if uiEntryReadOnly then 1 else 0)
+        return e
+    toCUIControl UISearchEntry{..} = do
+        e <- c_uiNewSearchEntry
         c_uiEntrySetText e =<< newCString uiEntryText
         c_uiEntrySetReadOnly e (if uiEntryReadOnly then 1 else 0)
         return e
@@ -220,6 +301,17 @@ instance ToCUIControl UILabel where
     toCUIControl UILabel{..} =
         c_uiNewLabel =<< newCString uiLabelText
 
+data UIForm = UIForm [(String, UI ())]
+
+instance ToCUIControl UIForm where
+    toCUIControl (UIForm cs) = do
+        f <- c_uiNewForm
+        c_uiFormSetPadded f 10
+        forM_ cs $ \(n, c) -> do
+            n' <- newCString n
+            (_, [c']) <- runUI c
+            c_uiFormAppend f n' c' 1
+        return f
 
 data UITab = UITab { uiTabMargin   :: Int
                    , uiTabChildren :: [(String, CUIControl)]
@@ -228,22 +320,24 @@ data UITab = UITab { uiTabMargin   :: Int
 instance ToCUIControl UITab where
     toCUIControl UITab{..} = do
         t <- c_uiNewTab
-        c_uiTabSetMargined t (fromIntegral uiTabMargin) 0
         forM_ uiTabChildren $ \(n, c) -> do
+            print n
             n' <- newCString n
             c_uiTabAppend t n' c
+        -- c_uiTabSetMargined t (fromIntegral uiTabMargin) 0
         return t
 
 data UIGroup = UIGroup { uiGroupTitle  :: String
                        , uiGroupMargin :: Int
-                       , uiGroupChild  :: CUIControl
+                       , uiGroupChild  :: UI ()
                        }
 
 instance ToCUIControl UIGroup where
     toCUIControl UIGroup{..} = do
         g <- c_uiNewGroup =<< newCString uiGroupTitle
         c_uiGroupSetMargined g (fromIntegral uiGroupMargin)
-        c_uiGroupSetChild g uiGroupChild
+        (_, [child]) <- runUI uiGroupChild
+        c_uiGroupSetChild g child
         return g
 
 data UISpinbox = UISpinbox { uiSpinboxValue :: Int
@@ -251,13 +345,32 @@ data UISpinbox = UISpinbox { uiSpinboxValue :: Int
                            , uiSpinboxMax   :: Int
                            }
 
+instance ToCUIControl UISpinbox where
+    toCUIControl UISpinbox{..} = do
+        sb <- c_uiNewSpinbox (fromIntegral uiSpinboxMin) (fromIntegral uiSpinboxMax)
+        c_uiSpinboxSetValue sb (fromIntegral uiSpinboxValue)
+        -- c_uiProgressBarSetValue pb (fromIntegral uiProgressBarValue)
+        return sb
+
 data UISlider = UISlider { uiSliderValue :: Int
                          , uiSliderMin   :: Int
                          , uiSliderMax   :: Int
                          }
 
-data UIProgressBar = UIProgressbar { uiProgressbarValue :: Int
+instance ToCUIControl UISlider where
+    toCUIControl UISlider{..} = do
+        s <- c_uiNewSlider (fromIntegral uiSliderMin) (fromIntegral uiSliderMax)
+        c_uiSliderSetValue s (fromIntegral uiSliderValue)
+        return s
+
+data UIProgressBar = UIProgressBar { uiProgressBarValue :: Int
                                    }
+
+instance ToCUIControl UIProgressBar where
+    toCUIControl UIProgressBar{..} = do
+        pb <- c_uiNewProgressBar
+        c_uiProgressBarSetValue pb (fromIntegral uiProgressBarValue)
+        return pb
 
 data UISeparator = UIHorizontalSeparator
                  | UIVerticalSeparator

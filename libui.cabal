@@ -12,15 +12,27 @@ maintainer:          tacla.yamada@gmail.com
 category:            Graphics
 build-type:          Simple
 cabal-version:       >= 1.10
+extra-tmp-files:
+    ./vendor/libui/ui.h
+    ./vendor/libui/uipriv.h
+    ./vendor/libui/common/uipriv.h
+    ./vendor/libui/darwin/uipriv_darwin.h
 
 library
   frameworks: Foundation CoreFoundation AppKit Cocoa
   hs-source-dirs:
       src
-  include-dirs:
-      ./vendor/libui/
-      ./vendor/libui/common/
-      ./vendor/libui/darwin/
+  extra-libraries: ui
+  extra-lib-dirs: /Users/yamadapc/program/github.com/beijaflor-io/haskell-libui/vendor/libui/build/out/
+  include-dirs: .  ./vendor/libui/ ./vendor/libui/common/ ./vendor/libui/darwin/
+  includes:
+      ui.h
+      uipriv.h
+  install-includes:
+      ui.h
+      ui_darwin.h
+      uipriv_darwin.h
+      uipriv.h
   c-sources:
       ./vendor/libui/common/areaevents.c
       ./vendor/libui/common/control.c
@@ -70,6 +82,7 @@ library
                , transformers
   exposed-modules: Graphics.LibUI
                  , Graphics.LibUI.FFI
+
   default-language: Haskell2010
   ghc-options: -threaded
 

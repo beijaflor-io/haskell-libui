@@ -1,5 +1,5 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE InterruptibleFFI         #-}
+{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE RecordWildCards         #-}
 module Graphics.LibUI.Types
   where
 
@@ -195,7 +195,7 @@ instance ToCUIControl UILabel where
 instance ToCUIControl UITab where
     toCUIControl UITab{..} = do
         t <- c_uiNewTab
-        c_uiTabSetMargined t (fromIntegral uiTabMargin)
+        c_uiTabSetMargined t (fromIntegral uiTabMargin) 0
         mapM_ (uncurry (c_uiTabAppend t)) =<< (forM uiTabChildren $ \(n, c) -> do
             n' <- newCString n
             return (n', c))

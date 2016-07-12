@@ -39,7 +39,7 @@ data UIControl = UIControlWindow UIWindow
                | UIControlCombobox UICombobox
                | UIControlEditableCombobox UIEditableCombobox
                | UIControlRadioButtons UIRadioButtons
-               | UIControlMultlineEntry UIMultlineEntry
+               | UIControlMultlineEntry UIMultilineEntry
                | UIControlMenuItem UIMenuItem
                | UIControlMenu UIMenu
 
@@ -181,7 +181,6 @@ stuff = runUILoop ui
                    ]
 
 -- ** Windows
-
 data UIWindow = UIWindow { uiWindowTitle      :: String
                          , uiWindowWidth      :: Int
                          , uiWindowHeight     :: Int
@@ -211,7 +210,6 @@ instance ToCUIControl UIWindow where
         return w
 
 -- ** Buttons
-
 data UIButton = UIButton { uiButtonText :: String
                          }
 
@@ -220,6 +218,7 @@ instance ToCUIControl UIButton where
         join $ c_uiNewButton
             <$> newCString uiButtonText
 
+-- ** Boxes
 data UIBox = UIHorizontalBox { uiBoxPadding  :: Int
                              , uiBoxChildren :: [UIBoxChild]
                              }
@@ -242,21 +241,7 @@ instance ToCUIControl UIBox where
             c_uiBoxAppend b uiBoxChildControl uiBoxChildStretchy'
         return b
 
-    -- toCUIControl UIVerticalBox{..} = do
-    --     b <- c_uiNewVerticalBox
-    --     c_uiBoxSetPadded b (fromIntegral uiBoxPadding)
-    --     forM_ uiBoxChildren $ \(bc, c) -> do
-    --         let bc' = if bc then 1 else 0
-    --         c_uiBoxAppend b c bc'
-    --     return b
-
--- -- |
--- Appends a menu item to a CUIBox
--- appendItem UIVerticalBox{..} b =
---     forM_ uiBoxChildren $ \(bc, c) -> do
---         let bc' = if bc then 1 else 0
---         c_uiBoxAppend b c bc'
-
+-- ** Checkboxes
 data UICheckbox = UICheckbox { uiCheckboxChecked :: Bool
                              , uiCheckboxText    :: String
                              }
@@ -267,6 +252,7 @@ instance ToCUIControl UICheckbox where
         c_uiCheckboxSetChecked c (if uiCheckboxChecked then 1 else 0)
         return c
 
+-- ** Text inputs
 data UIEntry = UIEntry { uiEntryReadOnly :: Bool
                        , uiEntryText     :: String
                        }
@@ -294,6 +280,7 @@ instance ToCUIControl UIEntry where
         c_uiEntrySetReadOnly e (if uiEntryReadOnly then 1 else 0)
         return e
 
+-- ** Labels
 data UILabel = UILabel { uiLabelText :: String
                        }
 
@@ -301,6 +288,7 @@ instance ToCUIControl UILabel where
     toCUIControl UILabel{..} =
         c_uiNewLabel =<< newCString uiLabelText
 
+-- ** Text Forms
 data UIForm = UIForm [(String, UI ())]
 
 instance ToCUIControl UIForm where
@@ -313,6 +301,7 @@ instance ToCUIControl UIForm where
             c_uiFormAppend f n' c' 1
         return f
 
+-- ** Tabs
 data UITab = UITab { uiTabMargin   :: Int
                    , uiTabChildren :: [(String, CUIControl)]
                    }
@@ -327,6 +316,7 @@ instance ToCUIControl UITab where
         -- c_uiTabSetMargined t (fromIntegral uiTabMargin) 0
         return t
 
+-- ** Groups
 data UIGroup = UIGroup { uiGroupTitle  :: String
                        , uiGroupMargin :: Int
                        , uiGroupChild  :: UI ()
@@ -340,6 +330,7 @@ instance ToCUIControl UIGroup where
         c_uiGroupSetChild g child
         return g
 
+-- ** Sliders
 data UISpinbox = UISpinbox { uiSpinboxValue :: Int
                            , uiSpinboxMin   :: Int
                            , uiSpinboxMax   :: Int
@@ -372,21 +363,48 @@ instance ToCUIControl UIProgressBar where
         c_uiProgressBarSetValue pb (fromIntegral uiProgressBarValue)
         return pb
 
+-- ** Separators
 data UISeparator = UIHorizontalSeparator
                  | UIVerticalSeparator
 
+instance ToCUIControl UISeparator where
+    toCUIControl UIHorizontalSeparator = c_uiNewHorizontalSeparator
+    toCUIControl UIVerticalSeparator = c_uiNewVerticalSeparator
+
+-- ** Selects
 data UICombobox = UICombobox { uiComboboxSelected :: Bool
                              }
+
+instance ToCUIControl UICombobox where
+    toCUIControl UICombobox{..} = do
+        cb <- c_uiNewCombobox
+        c_uiComboboxSetSelected cb (if uiComboboxSelected then 1 else 0)
+        return cb
 
 data UIEditableCombobox = UIEditableCombobox { uiEditableComboboxText :: String
                                              }
 
+instance ToCUIControl UIEditableCombobox where
+    toCUIControl UIEditableCombobox{..} = do
+        cb <- c_uiNewEditableCombobox
+        c_uiEditableComboboxSetText cb =<< newCString uiEditableComboboxText
+        return cb
+
 data UIRadioButtons = UIRadioButtons { uiRadioButtonsSelected :: Int
                                      }
 
-data UIMultlineEntry = UIMultilineEntry { uiMultilineEntryText     :: String
+instance ToCUIControl UIRadioButtons where
+    toCUIControl UIRadioButtons{..} =
+        c_uiNewRadioButtons
+
+-- ** Textarea
+data UIMultilineEntry = UIMultilineEntry { uiMultilineEntryText    :: String
                                         , uiMultilineEntryReadOnly :: Bool
                                         }
+
+instance ToCUIControl UIMultilineEntry where
+    toCUIControl UIMultilineEntry{..} =
+        c_uiNewMultilineEntry
 
 -- ** Menus
 

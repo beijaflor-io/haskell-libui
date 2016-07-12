@@ -10,101 +10,163 @@ module Graphics.LibUI.FFI
 import           Foreign   hiding (void)
 import           Foreign.C
 
--- ** Utility functions
+-- * Basic API
 
+-- |
+-- At the moment the FFI doesn't care about any of the types.
 type VoidPtr = Ptr ()
+
+-- |
+-- We use type-aliases to make it easier to change in the future.
+--
+-- The libui library also casts them away; that's why we ignore them for now.
+--
+-- 'CUIControl' is a pointer to some control we can display
 type CUIControl = VoidPtr
 
+-- |
+-- Start the main loop. Will block a thread, use 'runUILoop' instead.
+--
+-- 'c_uiInit' is required for proper window switcher and menubar support.
 foreign import capi safe "ui.h uiMain"
     c_uiMain :: IO ()
 
+-- |
+-- Initialize main loop
 foreign import capi safe "ui.h uiMainSteps"
     c_uiMainSteps :: IO ()
 
+-- |
+-- Step through the UI loop
 foreign import capi safe "ui.h uiMainStep"
-    c_uiMainStep :: CInt -> IO CInt
+    c_uiMainStep
+      :: CInt
+      -- ^ How many events to block for
+      -> IO CInt
+      -- ^ How many events were handled
 
+-- |
+-- Destroy the UI
 foreign import capi "ui.h uiQuit"
     c_uiQuit :: IO ()
 
+-- |
+-- Uninitialize the UI options
 foreign import capi "ui.h uiUninit"
     c_uiUninit :: IO ()
 
+-- |
+-- Initialize the UI options
 foreign import capi "ui.h uiInit"
     c_uiInit :: Ptr CSize -> IO ()
 
+-- |
+-- Initialize the UI
 foreign import capi "ui.h uiOnShouldQuit"
     c_uiOnShouldQuit :: FunPtr (VoidPtr -> IO CInt) -> VoidPtr -> IO ()
 
+-- |
+-- Display a CUIControl pointer
 foreign import capi "ui.h uiControlShow"
     c_uiControlShow :: CUIControl -> IO ()
 
+-- ** Functions for creating callbacks to pass to C and call back to Haskell
+
+-- |
+-- Wrap a success callback on a foreign pointer
 foreign import ccall "wrapper"
     c_wrap1I :: (VoidPtr -> IO CInt) -> IO (FunPtr (VoidPtr -> IO CInt))
 
+-- |
+-- Wrap a 1 argument event listener on a foreign pointer
 foreign import ccall "wrapper"
     c_wrap1 :: (VoidPtr -> IO ()) -> IO (FunPtr (VoidPtr -> IO ()))
 
+-- |
+-- Wrap a 2 argument event listener on a foreign pointer
 foreign import ccall "wrapper"
     c_wrap2 :: (VoidPtr -> VoidPtr -> IO ()) -> IO (FunPtr (VoidPtr -> VoidPtr -> IO ()))
 
--- ** CUIWindow <- uiWindow
+-- * UI Controls
+
+-- ** Windows
+-- *** CUIWindow <- uiWindow
 type CUIWindow = VoidPtr
+
+-- | Get the window title
 foreign import capi "ui.h uiWindowTitle"
     c_uiWindowTitle :: CUIWindow -> IO CString
 
+-- | Set the window title
 foreign import capi "ui.h uiWindowSetTitle"
     c_uiWindowSetTitle :: CUIWindow -> CString -> IO ()
 
+-- | Get the window position
 foreign import capi "ui.h uiWindowPosition"
     c_uiWindowPosition :: CUIWindow -> Ptr CInt -> Ptr CInt -> IO ()
 
+-- | Set the window position
 foreign import capi "ui.h uiWindowSetPosition"
     c_uiWindowSetPosition :: CUIWindow -> CInt -> CInt -> IO ()
 
+-- | Center the window
 foreign import capi "ui.h uiWindowCenter"
     c_uiWindowCenter :: CUIWindow -> IO ()
 
+-- | Add a callback to the window's position
 foreign import capi "ui.h uiWindowOnPositionChanged"
     c_uiWindowOnPositionChanged :: CUIWindow -> FunPtr (CUIWindow -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
+-- | Get the size of the window's content
 foreign import capi "ui.h uiWindowContentSize"
     c_uiWindowContentSize :: CUIWindow -> Ptr CInt -> Ptr CInt -> IO ()
 
+-- | Set the size of the window's content
 foreign import capi "ui.h uiWindowSetContentSize"
     c_uiWindowSetContentSize :: CUIWindow -> CInt -> CInt -> IO ()
 
+-- | Is the window full-screen?
 foreign import capi "ui.h uiWindowFullscreen"
     c_uiWindowFullscreen :: CUIWindow -> IO CInt
 
+-- | Set the window to be full-screen
 foreign import capi "ui.h uiWindowSetFullscreen"
     c_uiWindowSetFullscreen :: CUIWindow -> CInt -> IO ()
 
+-- | Add a callback to when content changes
 foreign import capi "ui.h uiWindowOnContentSizeChanged"
     c_uiWindowOnContentSizeChanged :: CUIWindow -> FunPtr (CUIWindow -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
+-- | Add a callback to when the window is closed
 foreign import capi "ui.h uiWindowOnClosing"
     c_uiWindowOnClosing :: CUIWindow -> FunPtr (CUIWindow -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
+-- | Is the window borderless?
 foreign import capi "ui.h uiWindowBorderless"
     c_uiWindowBorderless :: CUIWindow -> IO CInt
 
+-- | Set the window as borderless
 foreign import capi "ui.h uiWindowSetBorderless"
     c_uiWindowSetBorderless :: CUIWindow -> CInt -> IO ()
 
+-- | Set a child on the window
 foreign import capi "ui.h uiWindowSetChild"
     c_uiWindowSetChild :: VoidPtr -> VoidPtr -> IO ()
 
+-- | Is the window margined
 foreign import capi "ui.h uiWindowMargined"
     c_uiWindowMargined :: VoidPtr -> IO CInt
 
+-- | Make the window margined
 foreign import capi "ui.h uiWindowSetMargined"
     c_uiWindowSetMargined :: VoidPtr -> CInt -> IO ()
 
+-- | Create a new window
 foreign import capi "ui.h uiNewWindow"
     c_uiNewWindow :: CString -> CInt -> CInt -> CInt -> IO CUIWindow
 
--- ** CUIButton <- uiButton
+-- ** Buttons
+-- *** CUIButton <- uiButton
 type CUIButton = VoidPtr
 
 foreign import capi "ui.h uiButtonOnClicked"
@@ -119,7 +181,8 @@ foreign import capi "ui.h uiButtonText"
 foreign import capi "ui.h uiNewButton"
     c_uiNewButton :: CString -> IO CUIButton
 
--- ** CUIBox <- uiBox
+-- ** Layout
+-- *** CUIBox <- uiBox
 type CUIBox = VoidPtr
 
 -- |
@@ -147,7 +210,8 @@ foreign import capi "ui.h uiNewHorizontalBox"
 foreign import capi "ui.h uiNewVerticalBox"
     c_uiNewVerticalBox :: IO CUIBox
 
--- ** CUICheckbox <- uiCheckbox
+-- ** Input Types
+-- *** CUICheckbox <- uiCheckbox
 type CUICheckbox = VoidPtr
 
 foreign import capi "ui.h uiCheckboxText"
@@ -168,7 +232,7 @@ foreign import capi "ui.h uiCheckboxSetChecked"
 foreign import capi "ui.h uiNewCheckbox"
     c_uiNewCheckbox :: CString -> IO CUICheckbox
 
--- ** CUIEntry <- uiEntry
+-- *** CUIEntry <- uiEntry
 type CUIEntry = VoidPtr
 foreign import capi "ui.h uiEntryText"
     c_uiEntryText :: CUIEntry -> IO CString
@@ -450,7 +514,7 @@ foreign import capi "ui.h uiMenuAppendSeparator"
 foreign import capi "ui.h uiNewMenu"
     c_uiNewMenu :: CString -> IO CUIMenu
 
--- ** UI alerts
+-- * UI alerts
 foreign import capi "ui.h uiOpenFile"
     c_uiOpenFile :: CUIWindow -> IO CString
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
+r-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE InterruptibleFFI         #-}
 {-# LANGUAGE OverloadedStrings        #-}
 {-# LANGUAGE RecordWildCards          #-}

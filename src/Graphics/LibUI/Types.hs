@@ -145,11 +145,19 @@ tab title ui = UI $ do
     print c
     return (title, c)
 
+checkbox :: String -> UI ()
 checkbox t = wrap (UICheckbox False t)
+
+label :: String -> UI ()
 label t = wrap (UILabel t)
 
+entry :: String -> UI ()
 entry t = wrap (UIEntry False t)
+
+searchEntry :: String -> UI ()
 searchEntry t = wrap (UISearchEntry False t)
+
+passwordEntry :: String -> UI ()
 passwordEntry t = wrap (UISearchEntry False t)
 
 form cs = wrap (UIForm cs)

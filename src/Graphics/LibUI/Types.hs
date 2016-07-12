@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE TupleSections     #-}
@@ -11,6 +12,7 @@ import           Control.Exception
 import           Control.Monad
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans
+import           Control.Monad.Writer
 import           Data.String
 import           Foreign                  hiding (void)
 import qualified Foreign
@@ -125,25 +127,38 @@ group title items = UI $ do
     c <- toCUIControl $ UIGroup title 1 (vbox items)
     return ((), [c])
 
+progressbar :: Int -> UI ()
 progressbar value = wrap (UIProgressBar value)
 
+slider :: Int -> Int -> Int -> UI ()
 slider value min max = wrap (UISlider value min max)
 
+spinbox :: Int -> Int -> Int -> UI ()
 spinbox value min max = wrap (UISpinbox value min max)
 
-tabs :: [UI String] -> UI ()
-tabs ts = UI $ do
+-- tabs ts = UI $ do
+--     ts' <- forM ts $ \t -> do
+--         (r, (c:cs)) <- runUI t
+--         return (r, c)
+--     c <- toCUIControl (UITab 1 ts')
+--     return ((), [c])
+tabs :: Writer [UI String] () -> UI ()
+tabs wts = UI $ do
+    let ts :: [UI String]
+        ts = snd $ runWriter wts
     ts' <- forM ts $ \t -> do
-        (r, (c:cs)) <- runUI t
+        (r, c:_) <- runUI t
         return (r, c)
     c <- toCUIControl (UITab 1 ts')
     return ((), [c])
 
-tab :: t -> UI a -> UI t
-tab title ui = UI $ do
-    (_, c) <- runUI $ vbox ui
-    print c
-    return (title, c)
+tab :: String -> UI () -> Writer [UI String] ()
+tab title ui = do
+    let ui' = UI $ do
+            (_, c) <- runUI $ vbox ui
+            print c
+            return (title, c)
+    tell [ui']
 
 checkbox :: String -> UI ()
 checkbox t = wrap (UICheckbox False t)
@@ -161,6 +176,7 @@ passwordEntry :: String -> UI ()
 passwordEntry t = wrap (UISearchEntry False t)
 
 form cs = wrap (UIForm cs)
+formItem x e = (x, e)
 
 stuff :: IO ()
 stuff = runUILoop ui
@@ -172,21 +188,21 @@ stuff = runUILoop ui
                     , UIMenuItemQuit
                     ]
         window "libui Control Gallery" 640 300 True $
-            tabs $ [ tab "Basic Controls" $ do
-                           hbox $ do
-                               button "Button"
-                               checkbox "Checkbox"
-                           label "This is a label. Right now, labels can only span one line."
-                           group "Entries" $ do
-                               form $ [ ("Entry", (entry ""))
-                                      , ("Entry", (entry ""))
-                                      , ("Search Entry", (searchEntry ""))
-                                      ]
-                   , tab "Basic Controls" $ hbox $ do
-                           group "Numbers" (return ())
-                           group "Lists" (return ())
-                   , tab "Data Choosers" $ hbox (return ())
-                   ]
+            tabs $ do
+                tab "Basic Controls" $ do
+                    hbox $ do
+                        button "Button"
+                        checkbox "Checkbox"
+                    label "This is a label. Right now, labels can only span one line."
+                    group "Entries" $
+                        form [ formItem "Entry" (entry "")
+                             , formItem "Entry" (entry "")
+                             , formItem "Search Entry" (searchEntry "")
+                             ]
+                tab "Basic Controls" $ hbox $ do
+                    group "Numbers" (return ())
+                    group "Lists" (return ())
+                tab "Data Choosers" mempty
 
 -- ** Windows
 data UIWindow = UIWindow { uiWindowTitle      :: String

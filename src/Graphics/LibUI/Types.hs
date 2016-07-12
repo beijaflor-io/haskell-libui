@@ -1,10 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE InterruptibleFFI         #-}
-{-# LANGUAGE OverloadedStrings        #-}
-{-# LANGUAGE RecordWildCards          #-}
-{-# LANGUAGE ScopedTypeVariables      #-}
-{-# LANGUAGE TupleSections            #-}
-module Graphics.LibUI
+module Graphics.LibUI.Types
   where
 
 import           Control.Applicative
@@ -199,7 +195,7 @@ instance ToCUIControl UILabel where
 instance ToCUIControl UITab where
     toCUIControl UITab{..} = do
         t <- c_uiNewTab
-        c_uiTabSetMargined t (fromIntegral uiTabMargin) 0 -- < Margin is per tab, need to remodel
+        c_uiTabSetMargined t (fromIntegral uiTabMargin)
         mapM_ (uncurry (c_uiTabAppend t)) =<< (forM uiTabChildren $ \(n, c) -> do
             n' <- newCString n
             return (n', c))
@@ -223,7 +219,7 @@ instance ToCUIControl UIMenu where
 appendMenuItem m UIMenuItem{..} = do
     ctext <- newCString uiMenuItemText
     c_uiMenuAppendItem m ctext
-appendMenuItem m UIMenuItemQuit =
+appendMenuItem m UIMenuItemQuit = do
     c_uiMenuAppendQuitItem m
 
 -- getCUIControl _ = undefined

@@ -18,12 +18,9 @@ library
   hs-source-dirs:
       src
   include-dirs:
-      ./vendor/libui/common/controlsigs.h
-      ./vendor/libui/common/uipriv.h
-      ./vendor/libui/darwin/uipriv_darwin.h
-      ./vendor/libui/ui.h
-      ./vendor/libui/ui_darwin.h
-      ./vendor/libui/uitable.h
+      ./vendor/libui/
+      ./vendor/libui/common/
+      ./vendor/libui/darwin/
   c-sources:
       ./vendor/libui/common/areaevents.c
       ./vendor/libui/common/control.c
@@ -67,11 +64,10 @@ library
       ./vendor/libui/darwin/text.m
       ./vendor/libui/darwin/util.m
       ./vendor/libui/darwin/window.m
-  build-depends:
-                    base >=4.8
-                , async
-                , mtl
-                , transformers
+  build-depends: base >=4.8
+               , async
+               , mtl
+               , transformers
   exposed-modules: Graphics.LibUI
                  , Graphics.LibUI.FFI
   default-language: Haskell2010

@@ -1,3 +1,4 @@
+{-# LANGUAGE CApiFFI                  #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE InterruptibleFFI         #-}
 module Graphics.LibUI.FFI
@@ -9,28 +10,28 @@ import           Foreign.C
 type VoidPtr = Ptr ()
 type CUIControl = VoidPtr
 
-foreign import ccall safe "uiMain"
+foreign import capi safe "ui.h uiMain"
     c_uiMain :: IO ()
 
-foreign import ccall safe "uiMainSteps"
+foreign import capi safe "ui.h uiMainSteps"
     c_uiMainSteps :: IO ()
 
-foreign import ccall safe "uiMainStep"
+foreign import capi safe "ui.h uiMainStep"
     c_uiMainStep :: CInt -> IO CInt
 
-foreign import ccall "uiQuit"
+foreign import capi "ui.h uiQuit"
     c_uiQuit :: IO ()
 
-foreign import ccall "uiUninit"
+foreign import capi "ui.h uiUninit"
     c_uiUninit :: IO ()
 
-foreign import ccall "uiInit"
+foreign import capi "ui.h uiInit"
     c_uiInit :: Ptr CSize -> IO ()
 
-foreign import ccall "uiOnShouldQuit"
+foreign import capi "ui.h uiOnShouldQuit"
     c_uiOnShouldQuit :: FunPtr (VoidPtr -> IO CInt) -> VoidPtr -> IO ()
 
-foreign import ccall "uiControlShow"
+foreign import capi "ui.h uiControlShow"
     c_uiControlShow :: CUIControl -> IO ()
 
 foreign import ccall "wrapper"
@@ -44,370 +45,370 @@ foreign import ccall "wrapper"
 
 -- CUIWindow <- uiWindow
 type CUIWindow = VoidPtr
-foreign import ccall "uiWindowTitle"
+foreign import capi "ui.h uiWindowTitle"
     c_uiWindowTitle :: CUIWindow -> IO CString
 
-foreign import ccall "uiWindowSetTitle"
+foreign import capi "ui.h uiWindowSetTitle"
     c_uiWindowSetTitle :: CUIWindow -> CString -> IO ()
 
-foreign import ccall "uiWindowPosition"
+foreign import capi "ui.h uiWindowPosition"
     c_uiWindowPosition :: CUIWindow -> Ptr CInt -> Ptr CInt -> IO ()
 
-foreign import ccall "uiWindowSetPosition"
+foreign import capi "ui.h uiWindowSetPosition"
     c_uiWindowSetPosition :: CUIWindow -> CInt -> CInt -> IO ()
 
-foreign import ccall "uiWindowCenter"
+foreign import capi "ui.h uiWindowCenter"
     c_uiWindowCenter :: CUIWindow -> IO ()
 
-foreign import ccall "uiWindowOnPositionChanged"
+foreign import capi "ui.h uiWindowOnPositionChanged"
     c_uiWindowOnPositionChanged :: CUIWindow -> FunPtr (CUIWindow -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiWindowContentSize"
+foreign import capi "ui.h uiWindowContentSize"
     c_uiWindowContentSize :: CUIWindow -> Ptr CInt -> Ptr CInt -> IO ()
 
-foreign import ccall "uiWindowSetContentSize"
+foreign import capi "ui.h uiWindowSetContentSize"
     c_uiWindowSetContentSize :: CUIWindow -> CInt -> CInt -> IO ()
 
-foreign import ccall "uiWindowFullscreen"
+foreign import capi "ui.h uiWindowFullscreen"
     c_uiWindowFullscreen :: CUIWindow -> IO CInt
 
-foreign import ccall "uiWindowSetFullscreen"
+foreign import capi "ui.h uiWindowSetFullscreen"
     c_uiWindowSetFullscreen :: CUIWindow -> CInt -> IO ()
 
-foreign import ccall "uiWindowOnContentSizeChanged"
+foreign import capi "ui.h uiWindowOnContentSizeChanged"
     c_uiWindowOnContentSizeChanged :: CUIWindow -> FunPtr (CUIWindow -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiWindowOnClosing"
+foreign import capi "ui.h uiWindowOnClosing"
     c_uiWindowOnClosing :: CUIWindow -> FunPtr (CUIWindow -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiWindowBorderless"
+foreign import capi "ui.h uiWindowBorderless"
     c_uiWindowBorderless :: CUIWindow -> IO CInt
 
-foreign import ccall "uiWindowSetBorderless"
+foreign import capi "ui.h uiWindowSetBorderless"
     c_uiWindowSetBorderless :: CUIWindow -> CInt -> IO ()
 
-foreign import ccall "uiWindowSetChild"
+foreign import capi "ui.h uiWindowSetChild"
     c_uiWindowSetChild :: VoidPtr -> VoidPtr -> IO ()
 
-foreign import ccall "uiWindowMargined"
+foreign import capi "ui.h uiWindowMargined"
     c_uiWindowMargined :: VoidPtr -> IO CInt
 
-foreign import ccall "uiWindowSetMargined"
+foreign import capi "ui.h uiWindowSetMargined"
     c_uiWindowSetMargined :: VoidPtr -> CInt -> IO ()
 
-foreign import ccall "uiNewWindow"
+foreign import capi "ui.h uiNewWindow"
     c_uiNewWindow :: CString -> CInt -> CInt -> CInt -> IO CUIWindow
 
 -- CUIButton <- uiButton
 type CUIButton = VoidPtr
 
-foreign import ccall "uiButtonOnClicked"
+foreign import capi "ui.h uiButtonOnClicked"
     c_uiButtonOnClicked :: CUIButton -> FunPtr (CUIButton -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiButtonSetText"
+foreign import capi "ui.h uiButtonSetText"
     c_uiButtonSetText :: CUIButton -> CString -> IO ()
 
-foreign import ccall "uiButtonText"
+foreign import capi "ui.h uiButtonText"
     c_uiButtonText :: CUIButton -> CString
 
-foreign import ccall "uiNewButton"
+foreign import capi "ui.h uiNewButton"
     c_uiNewButton :: CString -> IO CUIButton
 
 -- CUIBox <- uiBox
 type CUIBox = VoidPtr
 
-foreign import ccall "uiBoxAppend"
+foreign import capi "ui.h uiBoxAppend"
     c_uiBoxAppend :: CUIBox -> CUIControl -> CInt -> IO ()
 
-foreign import ccall "uiBoxDelete"
+foreign import capi "ui.h uiBoxDelete"
     c_uiBoxDelete :: CUIBox -> CInt -> IO ()
 
-foreign import ccall "uiBoxPadded"
+foreign import capi "ui.h uiBoxPadded"
     c_uiBoxPadded :: CUIBox -> IO CInt
 
-foreign import ccall "uiBoxSetPadded"
+foreign import capi "ui.h uiBoxSetPadded"
     c_uiBoxSetPadded :: CUIBox -> CInt -> IO ()
 
-foreign import ccall "uiNewHorizontalBox"
+foreign import capi "ui.h uiNewHorizontalBox"
     c_uiNewHorizontalBox :: IO CUIBox
 
-foreign import ccall "uiNewVerticalBox"
+foreign import capi "ui.h uiNewVerticalBox"
     c_uiNewVerticalBox :: IO CUIBox
 
 -- CUICheckbox <- uiCheckbox
 type CUICheckbox = VoidPtr
 
-foreign import ccall "uiCheckboxText"
+foreign import capi "ui.h uiCheckboxText"
     c_uiCheckboxText :: CUICheckbox -> IO CString
 
-foreign import ccall "uiCheckboxSetText"
+foreign import capi "ui.h uiCheckboxSetText"
     c_uiCheckboxSetText :: CUICheckbox -> CString -> IO ()
 
-foreign import ccall "uiCheckboxOnToggled"
+foreign import capi "ui.h uiCheckboxOnToggled"
     c_uiCheckboxOnToggled :: CUICheckbox -> FunPtr (CUICheckbox -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiCheckboxChecked"
+foreign import capi "ui.h uiCheckboxChecked"
     c_uiCheckboxChecked :: CUICheckbox -> IO CInt
 
-foreign import ccall "uiCheckboxSetChecked"
+foreign import capi "ui.h uiCheckboxSetChecked"
     c_uiCheckboxSetChecked :: CUICheckbox -> CInt -> IO ()
 
-foreign import ccall "uiNewCheckbox"
+foreign import capi "ui.h uiNewCheckbox"
     c_uiNewCheckbox :: CString -> IO CUICheckbox
 
 -- CUIEntry <- uiEntry
 type CUIEntry = VoidPtr
-foreign import ccall "uiEntryText"
+foreign import capi "ui.h uiEntryText"
     c_uiEntryText :: CUIEntry -> IO CString
 
-foreign import ccall "uiEntrySetText"
+foreign import capi "ui.h uiEntrySetText"
     c_uiEntrySetText :: CUIEntry -> CString -> IO ()
 
-foreign import ccall "uiEntryOnChanged"
+foreign import capi "ui.h uiEntryOnChanged"
     c_uiEntryOnChanged :: CUIEntry -> FunPtr (CUIEntry -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiEntryReadOnly"
+foreign import capi "ui.h uiEntryReadOnly"
     c_uiEntryReadOnly :: CUIEntry -> IO CInt
 
-foreign import ccall "uiEntrySetReadOnly"
+foreign import capi "ui.h uiEntrySetReadOnly"
     c_uiEntrySetReadOnly :: CUIEntry -> CInt -> IO ()
 
-foreign import ccall "uiNewEntry"
+foreign import capi "ui.h uiNewEntry"
     c_uiNewEntry :: IO CUIEntry
 
-foreign import ccall "uiNewPasswordEntry"
+foreign import capi "ui.h uiNewPasswordEntry"
     c_uiNewPasswordEntry :: IO CUIEntry
 
-foreign import ccall "uiNewSearchEntry"
+foreign import capi "ui.h uiNewSearchEntry"
     c_uiNewSearchEntry :: IO CUIEntry
 
 -- CUILabel <- uiLabel
 type CUILabel = VoidPtr
-foreign import ccall "uiLabelText"
+foreign import capi "ui.h uiLabelText"
     c_uiLabelText :: CUILabel -> IO CString
 
-foreign import ccall "uiLabelSetText"
+foreign import capi "ui.h uiLabelSetText"
     c_uiLabelSetText :: CUILabel -> CString -> IO ()
 
-foreign import ccall "uiNewLabel"
+foreign import capi "ui.h uiNewLabel"
     c_uiNewLabel :: CString -> IO CUILabel
 
 -- CUITab <- uiTab
 type CUITab = VoidPtr
-foreign import ccall "uiTabAppend"
+foreign import capi "ui.h uiTabAppend"
     c_uiTabAppend :: CUITab -> CString -> CUIControl -> IO ()
 
-foreign import ccall "uiTabInsertAt"
+foreign import capi "ui.h uiTabInsertAt"
     c_uiTabInsertAt :: CUITab -> CString -> CInt -> CUIControl -> IO ()
 
-foreign import ccall "uiTabDelete"
+foreign import capi "ui.h uiTabDelete"
     c_uiTabDelete :: CUITab -> CInt -> IO ()
 
-foreign import ccall "uiTabNumPages"
+foreign import capi "ui.h uiTabNumPages"
     c_uiTabNumPages :: CUITab -> IO CInt
 
-foreign import ccall "uiTabMargined"
-    c_uiTabMargined :: CUITab -> IO CInt
+foreign import capi "ui.h uiTabMargined"
+    c_uiTabMargined :: CUITab -> CInt -> IO CInt
 
-foreign import ccall "uiTabSetMargined"
-    c_uiTabSetMargined :: CUITab -> CInt -> IO ()
+foreign import capi "ui.h uiTabSetMargined"
+    c_uiTabSetMargined :: CUITab -> CInt -> CInt -> IO ()
 
-foreign import ccall "uiNewTab"
+foreign import capi "ui.h uiNewTab"
     c_uiNewTab :: IO CUITab
 
 -- CUIGroup <- uiGroup
 type CUIGroup = VoidPtr
-foreign import ccall "uiGroupTitle"
+foreign import capi "ui.h uiGroupTitle"
     c_uiGroupTitle :: CUIGroup -> IO CString
 
-foreign import ccall "uiGroupSetTitle"
+foreign import capi "ui.h uiGroupSetTitle"
     c_uiGroupSetTitle :: CUIGroup -> CString -> IO ()
 
-foreign import ccall "uiGroupSetChild"
+foreign import capi "ui.h uiGroupSetChild"
     c_uiGroupSetChild :: CUIGroup -> CUIControl -> IO ()
 
-foreign import ccall "uiGroupMargined"
+foreign import capi "ui.h uiGroupMargined"
     c_uiGroupMargined :: CUIGroup -> IO CInt
 
-foreign import ccall "uiGroupSetMargined"
+foreign import capi "ui.h uiGroupSetMargined"
     c_uiGroupSetMargined :: CUIGroup -> CInt -> IO ()
 
-foreign import ccall "uiNewGroup"
+foreign import capi "ui.h uiNewGroup"
     c_uiNewGroup :: CString -> IO CUIGroup
 
 -- CUISpinbox <- uiSpinbox
 type CUISpinbox = VoidPtr
-foreign import ccall "uiSpinboxValue"
+foreign import capi "ui.h uiSpinboxValue"
     c_uiSpinboxValue :: CUISpinbox -> IO CInt
 
-foreign import ccall "uiSpinboxSetValue"
+foreign import capi "ui.h uiSpinboxSetValue"
     c_uiSpinboxSetValue :: CUISpinbox -> CInt -> IO ()
 
-foreign import ccall "uiSpinboxOnChanged"
+foreign import capi "ui.h uiSpinboxOnChanged"
     c_uiSpinboxOnChanged :: CUISpinbox -> FunPtr (CUISpinbox -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiNewSpinbox"
+foreign import capi "ui.h uiNewSpinbox"
     c_uiNewSpinbox :: CInt -> CInt -> IO CUISpinbox
 
 -- CUISlider <- uiSlider
 type CUISlider = VoidPtr
-foreign import ccall "uiSliderValue"
+foreign import capi "ui.h uiSliderValue"
     c_uiSliderValue :: CUISlider -> IO CInt
 
-foreign import ccall "uiSliderSetValue"
+foreign import capi "ui.h uiSliderSetValue"
     c_uiSliderSetValue :: CUISlider -> CInt -> IO ()
 
-foreign import ccall "uiSliderOnChanged"
+foreign import capi "ui.h uiSliderOnChanged"
     c_uiSliderOnChanged :: CUISlider -> FunPtr (CUISlider -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiNewSlider"
+foreign import capi "ui.h uiNewSlider"
     c_uiNewSlider :: CInt -> CInt -> IO CUISlider
 
 -- CUIProgressBar <- uiProgressBar
 type CUIProgressBar = VoidPtr
-foreign import ccall "uiProgressBarValue"
+foreign import capi "ui.h uiProgressBarValue"
     c_uiProgressBarValue :: CUIProgressBar -> IO CInt
 
-foreign import ccall "uiProgressBarSetValue"
+foreign import capi "ui.h uiProgressBarSetValue"
     c_uiProgressBarSetValue :: CUIProgressBar -> CInt -> IO ()
 
-foreign import ccall "uiNewProgressBar"
+foreign import capi "ui.h uiNewProgressBar"
     c_uiNewProgressBar :: IO CUIProgressBar
 
 -- CUISeparator <- uiSeparator
 type CUISeparator = VoidPtr
-foreign import ccall "uiNewHorizontalSeparator"
+foreign import capi "ui.h uiNewHorizontalSeparator"
     c_uiNewHorizontalSeparator :: IO CUISeparator
 
-foreign import ccall "uiNewVerticalSeparator"
+foreign import capi "ui.h uiNewVerticalSeparator"
     c_uiNewVerticalSeparator :: IO CUISeparator
 
 -- CUICombobox <- uiCombobox
 type CUICombobox = VoidPtr
-foreign import ccall "uiComboboxAppend"
+foreign import capi "ui.h uiComboboxAppend"
     c_uiComboboxAppend :: CUICombobox -> CUIControl -> IO ()
 
-foreign import ccall "uiComboboxSelected"
+foreign import capi "ui.h uiComboboxSelected"
     c_uiComboboxSelected :: CUICombobox -> IO CInt
 
-foreign import ccall "uiComboboxSetSelected"
+foreign import capi "ui.h uiComboboxSetSelected"
     c_uiComboboxSetSelected :: CUICombobox -> CInt -> IO ()
 
-foreign import ccall "uiComboboxOnSelected"
+foreign import capi "ui.h uiComboboxOnSelected"
     c_uiComboboxOnSelected :: CUICombobox -> FunPtr (CUICombobox -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiNewCombobox"
+foreign import capi "ui.h uiNewCombobox"
     c_uiNewCombobox :: IO CUICombobox
 
 -- CUIEditableCombobox <- uiEditableCombobox
 type CUIEditableCombobox = VoidPtr
-foreign import ccall "uiEditableComboboxAppend"
+foreign import capi "ui.h uiEditableComboboxAppend"
     c_uiEditableComboboxAppend :: CUIEditableCombobox -> CUIControl -> IO ()
 
-foreign import ccall "uiEditableComboboxText"
+foreign import capi "ui.h uiEditableComboboxText"
     c_uiEditableComboboxText :: CUIEditableCombobox -> IO CString
 
-foreign import ccall "uiEditableComboboxSetText"
+foreign import capi "ui.h uiEditableComboboxSetText"
     c_uiEditableComboboxSetText :: CUIEditableCombobox -> CString -> IO ()
 
-foreign import ccall "uiEditableComboboxOnChanged"
+foreign import capi "ui.h uiEditableComboboxOnChanged"
     c_uiEditableComboboxOnChanged :: CUIEditableCombobox -> FunPtr (CUIEditableCombobox -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiNewEditableCombobox"
+foreign import capi "ui.h uiNewEditableCombobox"
     c_uiNewEditableCombobox :: IO CUIEditableCombobox
 
 -- CUIRadioButtons <- uiRadioButtons
 type CUIRadioButtons = VoidPtr
-foreign import ccall "uiRadioButtonsAppend"
+foreign import capi "ui.h uiRadioButtonsAppend"
     c_uiRadioButtonsAppend :: CUIRadioButtons -> CString -> IO ()
 
-foreign import ccall "uiRadioButtonsSelected"
+foreign import capi "ui.h uiRadioButtonsSelected"
     c_uiRadioButtonsSelected :: CUIRadioButtons -> IO CInt
 
-foreign import ccall "uiRadioButtonsSetSelected"
+foreign import capi "ui.h uiRadioButtonsSetSelected"
     c_uiRadioButtonsSetSelected :: CUIRadioButtons -> CInt -> IO ()
 
-foreign import ccall "uiRadioButtonsOnSelected"
+foreign import capi "ui.h uiRadioButtonsOnSelected"
     c_uiRadioButtonsOnSelected :: CUIRadioButtons -> FunPtr (CUIRadioButtons -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiNewRadioButtons"
+foreign import capi "ui.h uiNewRadioButtons"
     c_uiNewRadioButtons :: IO CUIRadioButtons
 
 -- CUIMultilineEntry <- uiMultilineEntry
 type CUIMultilineEntry = VoidPtr
-foreign import ccall "uiMultilineEntryText"
+foreign import capi "ui.h uiMultilineEntryText"
     c_uiMultilineEntryText :: CUIMultilineEntry -> IO CString
 
-foreign import ccall "uiMultilineEntrySetText"
+foreign import capi "ui.h uiMultilineEntrySetText"
     c_uiMultilineEntrySetText :: CUIMultilineEntry -> CString -> IO ()
 
-foreign import ccall "uiMultilineEntryAppend"
+foreign import capi "ui.h uiMultilineEntryAppend"
     c_uiMultilineEntryAppend :: CUIMultilineEntry -> CString -> IO ()
 
-foreign import ccall "uiMultilineEntryOnChanged"
+foreign import capi "ui.h uiMultilineEntryOnChanged"
     c_uiMultilineEntryOnChanged :: CUIMultilineEntry -> FunPtr (CUIMultilineEntry -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiMultilineEntryReadOnly"
+foreign import capi "ui.h uiMultilineEntryReadOnly"
     c_uiMultilineEntryReadOnly :: CUIMultilineEntry -> IO CInt
 
-foreign import ccall "uiMultilineEntrySetReadOnly"
+foreign import capi "ui.h uiMultilineEntrySetReadOnly"
     c_uiMultilineEntrySetReadOnly :: CUIMultilineEntry -> CInt -> IO ()
 
-foreign import ccall "uiNewMultilineEntry"
+foreign import capi "ui.h uiNewMultilineEntry"
     c_uiNewMultilineEntry :: IO CUIMultilineEntry
 
-foreign import ccall "uiNewNonWrappingMultilineEntry"
+foreign import capi "ui.h uiNewNonWrappingMultilineEntry"
     c_uiNewNonWrappingMultilineEntry :: IO CUIMultilineEntry
 
 -- CUIMenuItem <- uiMenuItem
 type CUIMenuItem = VoidPtr
-foreign import ccall "uiMenuItemEnable"
+foreign import capi "ui.h uiMenuItemEnable"
     c_uiMenuItemEnable :: CUIMenuItem -> IO ()
 
-foreign import ccall "uiMenuItemDisable"
+foreign import capi "ui.h uiMenuItemDisable"
     c_uiMenuItemDisable :: CUIMenuItem -> IO ()
 
-foreign import ccall "uiMenuItemOnClicked"
-    c_uiMenuItemOnClicked :: CUIMenuItem -> FunPtr (CUIMenuItem -> VoidPtr -> IO ()) -> IO ()
+foreign import capi "ui.h uiMenuItemOnClicked"
+    c_uiMenuItemOnClicked :: CUIMenuItem -> FunPtr (CUIMenuItem -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
-foreign import ccall "uiMenuItemChecked"
+foreign import capi "ui.h uiMenuItemChecked"
     c_uiMenuItemChecked :: CUIMenuItem -> IO CInt
 
-foreign import ccall "uiMenuItemSetChecked"
+foreign import capi "ui.h uiMenuItemSetChecked"
     c_uiMenuItemSetChecked :: CUIMenuItem -> CInt -> IO ()
 
 -- CUIMenu <- uiMenu
 type CUIMenu = VoidPtr
-foreign import ccall "uiMenuAppendItem"
+foreign import capi "ui.h uiMenuAppendItem"
     c_uiMenuAppendItem :: CUIMenu -> CString -> IO CUIMenuItem
 
-foreign import ccall "uiMenuAppendCheckItem"
+foreign import capi "ui.h uiMenuAppendCheckItem"
     c_uiMenuAppendCheckItem :: CUIMenu -> CString -> IO CUIMenuItem
 
-foreign import ccall "uiMenuAppendQuitItem"
+foreign import capi "ui.h uiMenuAppendQuitItem"
     c_uiMenuAppendQuitItem :: CUIMenu -> IO CUIMenuItem
 
-foreign import ccall "uiMenuAppendPreferencesItem"
+foreign import capi "ui.h uiMenuAppendPreferencesItem"
     c_uiMenuAppendPreferencesItem :: CUIMenu -> IO CUIMenuItem
 
-foreign import ccall "uiMenuAppendAboutItem"
+foreign import capi "ui.h uiMenuAppendAboutItem"
     c_uiMenuAppendAboutItem :: CUIMenu -> IO CUIMenuItem
 
-foreign import ccall "uiMenuAppendSeparator"
+foreign import capi "ui.h uiMenuAppendSeparator"
     c_uiMenuAppendSeparator :: CUIMenu -> IO ()
 
-foreign import ccall "uiNewMenu"
+foreign import capi "ui.h uiNewMenu"
     c_uiNewMenu :: CString -> IO CUIMenu
 
 -- UI alerts
-foreign import ccall "uiOpenFile"
+foreign import capi "ui.h uiOpenFile"
     c_uiOpenFile :: CUIWindow -> IO CString
 
-foreign import ccall "uiSaveFile"
+foreign import capi "ui.h uiSaveFile"
     c_uiSaveFile :: CUIWindow -> IO CString
 
-foreign import ccall "uiMsgBox"
+foreign import capi "ui.h uiMsgBox"
     c_uiMsgBox :: CUIWindow -> CString -> CString -> IO ()
 
-foreign import ccall "uiMsgBoxError"
+foreign import capi "ui.h uiMsgBoxError"
     c_uiMsgBoxError :: CUIWindow -> CString -> CString -> IO ()

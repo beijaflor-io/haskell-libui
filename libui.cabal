@@ -22,7 +22,7 @@ library
   frameworks: Foundation CoreFoundation AppKit Cocoa
   hs-source-dirs:
       src
-  extra-libraries: ui
+  -- extra-libraries: ui
   extra-lib-dirs: /Users/yamadapc/program/github.com/beijaflor-io/haskell-libui/vendor/libui/build/out/
   include-dirs: .  ./vendor/libui/ ./vendor/libui/common/ ./vendor/libui/darwin/
   includes:

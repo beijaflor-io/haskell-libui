@@ -72,8 +72,8 @@ library
                 , async
                 , mtl
                 , transformers
-  exposed-modules:
-      Graphics.LibUI
+  exposed-modules: Graphics.LibUI
+                 , Graphics.LibUI.FFI
   default-language: Haskell2010
   ghc-options: -threaded
 

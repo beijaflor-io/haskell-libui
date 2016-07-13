@@ -13,15 +13,18 @@ category:            Graphics
 build-type:          Simple
 cabal-version:       >= 1.10
 extra-tmp-files:
-    ./vendor/libui/ui.h
-    ./vendor/libui/uipriv.h
-    ./vendor/libui/common/uipriv.h
+  ./vendor/libui/ui.h
+  ./vendor/libui/uipriv.h
+  ./vendor/libui/common/uipriv.h
+  if os(darwin)
     ./vendor/libui/darwin/uipriv_darwin.h
 
 library
   -- ld-options: -Wl,-rpath,'$ORIGIN'
   -- ghc-options: -optl-Wl,-rpath,'$ORIGIN'"
   frameworks: Foundation CoreFoundation AppKit Cocoa
+  if os(linux)
+    extra-libraries: gtk
   -- extra-libraries: ui
   extra-lib-dirs: /Users/yamadapc/program/github.com/beijaflor-io/haskell-libui/vendor/libui/build/out/
   include-dirs: .  ./vendor/libui/ ./vendor/libui/common/ ./vendor/libui/darwin/
@@ -30,9 +33,18 @@ library
       uipriv.h
   install-includes:
       ui.h
+      uipriv.h
+
+  if os(linux)
+    install-includes:
+      ui_unix.h
+      uipriv_unix.h
+
+  if os(darwin)
+    install-includes:
       ui_darwin.h
       uipriv_darwin.h
-      uipriv.h
+
   c-sources:
       ./vendor/libui/common/areaevents.c
       ./vendor/libui/common/control.c
@@ -40,6 +52,49 @@ library
       ./vendor/libui/common/matrix.c
       ./vendor/libui/common/shouldquit.c
       ./vendor/libui/common/userbugs.c
+  if os(linux)
+    c-sources:
+      ./vendor/libui/unix/alloc.c
+      ./vendor/libui/unix/area.c
+      ./vendor/libui/unix/box.c
+      ./vendor/libui/unix/button.c
+      ./vendor/libui/unix/checkbox.c
+      ./vendor/libui/unix/child.c
+      ./vendor/libui/unix/CMakeLists.txt
+      ./vendor/libui/unix/colorbutton.c
+      ./vendor/libui/unix/combobox.c
+      ./vendor/libui/unix/control.c
+      ./vendor/libui/unix/datetimepicker.c
+      ./vendor/libui/unix/debug.c
+      ./vendor/libui/unix/draw.c
+      ./vendor/libui/unix/draw.h
+      ./vendor/libui/unix/drawmatrix.c
+      ./vendor/libui/unix/drawpath.c
+      ./vendor/libui/unix/drawtext.c
+      ./vendor/libui/unix/editablecombo.c
+      ./vendor/libui/unix/entry.c
+      ./vendor/libui/unix/fontbutton.c
+      ./vendor/libui/unix/form.c
+      ./vendor/libui/unix/graphemes.c
+      ./vendor/libui/unix/grid.c
+      ./vendor/libui/unix/group.c
+      ./vendor/libui/unix/label.c
+      ./vendor/libui/unix/main.c
+      ./vendor/libui/unix/menu.c
+      ./vendor/libui/unix/multilineentry.c
+      ./vendor/libui/unix/progressbar.c
+      ./vendor/libui/unix/radiobuttons.c
+      ./vendor/libui/unix/separator.c
+      ./vendor/libui/unix/slider.c
+      ./vendor/libui/unix/spinbox.c
+      ./vendor/libui/unix/stddialogs.c
+      ./vendor/libui/unix/tab.c
+      ./vendor/libui/unix/text.c
+      ./vendor/libui/unix/uipriv_unix.h
+      ./vendor/libui/unix/util.c
+      ./vendor/libui/unix/window.c
+  if os(darwin)
+    c-sources:
       ./vendor/libui/darwin/alloc.m
       ./vendor/libui/darwin/area.m
       ./vendor/libui/darwin/areaevents.m

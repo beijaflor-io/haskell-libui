@@ -118,3 +118,12 @@ executable control-gallery
                , transformers
   default-language: Haskell2010
   ghc-options: -threaded
+
+test-suite hspec
+  main-is: Spec.hs
+  type: exitcode-stdio-1.0
+  build-depends: base
+               , hspec
+               , QuickCheck
+  hs-source-dirs: test
+  default-language: Haskell2010

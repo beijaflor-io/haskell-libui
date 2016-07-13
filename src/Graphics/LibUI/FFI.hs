@@ -84,8 +84,6 @@ newtype CUIControl = CUIControl VoidPtr
 
 class ToCUIControl a where
     toCUIControl :: a -> CUIControl
-    toCUIControlTup :: a -> (a, CUIControl)
-    toCUIControlTup x = (x, toCUIControl x)
 
 instance ToCUIControl CUIControl where
     toCUIControl = id

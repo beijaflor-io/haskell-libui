@@ -2,7 +2,5 @@ flags: {}
 extra-package-dbs: []
 packages:
 - '.'
-extra-deps:
-- ref-tf-0.4.0.1
-- reflex-0.4.0
+extra-deps: []
 resolver: lts-6.7

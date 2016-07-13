@@ -1,23 +1,28 @@
+{-# LANGUAGE RecursiveDo         #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 import           Control.Concurrent
 import           Data.Time
 import           Graphics.LibUI
 
 main :: IO ()
 main = do
-    countM <- newMVar 0 :: IO (MVar Int)
     runUILoop $ do
         wrap def { uiWindowTitle = "Control Gallery"
                  , uiWindowMargin = 100
-                 , uiWindowChild = vbox $ do
+                 , uiWindowChild = vbox $ mdo
                      time <- label "Simple UI"
+                     countM <- liftIO $ newMVar 0 :: UI (MVar Int)
                      counter <- label ""
-                     wrap $
-                         UIButton "Should be simple" $
-                             Just $ do
-                                 print time
-                                 setText time =<<
-                                     (("Simple UI - " ++) . show <$>
-                                          getCurrentTime)
-                                 setText counter =<<
-                                     show <$> modifyMVar countM (\c -> return (c + 1, c + 1))
+                     btn <- button
+                         def { uiButtonText = "Should be simple"
+                             , uiButtonOnClicked = Just $ do
+                                     print time
+                                     currentTime <- getCurrentTime
+                                     setText time ("Simple UI" ++ show currentTime)
+                                     currentCount <- modifyMVar_ countM (\c -> return (c + 1))
+                                     setText counter (show currentCount)
+                                     setText btn ("Should be simple " ++ show currentCount)
+                             }
+                     wrap btn
+                     return ()
                  }

@@ -9,8 +9,8 @@ module Graphics.LibUI
     , module Graphics.LibUI.MonadUI
     , module Graphics.LibUI.Types
 
+    , MonadIO (..)
     , Default (..)
-    , def
     )
   where
 

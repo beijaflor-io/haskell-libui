@@ -100,7 +100,7 @@ class HasSetText s where
     setText :: s -> String -> IO ()
 
 class HasOnClicked s where
-    onClicked :: s -> IO () -> IO ()
+    onClick :: s -> IO () -> IO ()
 
 class HasSetChecked s where
     setChecked :: s -> Bool -> IO ()
@@ -273,7 +273,7 @@ foreign import capi "ui.h uiButtonOnClicked"
     c_uiButtonOnClicked :: CUIButton -> FunPtr (CUIButton -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
 instance HasOnClicked CUIButton where
-    onClicked btn action = do
+    onClick btn action = do
         f <- castFunPtr <$> c_wrap2 (\_ _ -> action)
         c_uiButtonOnClicked btn f nullPtr
 
@@ -659,7 +659,7 @@ foreign import capi "ui.h uiMenuItemOnClicked"
     c_uiMenuItemOnClicked :: CUIMenuItem -> FunPtr (CUIMenuItem -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
 
 instance HasOnClicked CUIMenuItem where
-    onClicked itm action = do
+    onClick itm action = do
         f <- castFunPtr <$> c_wrap2 (\_ _ -> action)
         c_uiMenuItemOnClicked itm f nullPtr
 

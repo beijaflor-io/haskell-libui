@@ -94,8 +94,8 @@ window title width height hasMenubar child = UI $ do
                               }
     return ((), [c])
 
-button :: String -> UI ()
-button title = wrap (UIButton title Nothing)
+-- button :: String -> UI ()
+-- button title = wrap (UIButton title Nothing)
 
 wrap :: ToCUIControlIO c => c -> UI ()
 wrap toCUI = UI $ do
@@ -170,6 +170,16 @@ tab title ui = do
 checkbox :: String -> UI ()
 checkbox t = wrap (UICheckbox False t)
 
+button :: UIButton -> UI CUIButton
+button UIButton{..} = UI $ do
+    cbtn <- c_uiNewButton =<< newCString uiButtonText
+    maybe (return ())
+          (\onClick -> do
+               cb <- c_wrap2 (\_ _ -> onClick)
+               c_uiButtonOnClicked cbtn (castFunPtr cb) nullPtr)
+          uiButtonOnClicked
+    return (cbtn, [toCUIControl cbtn])
+
 label :: String -> UI CUILabel
 label t = UI $ do
     cui@(CUIControl ptr) <- toCUIControlIO (UILabel t)
@@ -213,7 +223,7 @@ stuff = runUILoop ui
             tabs $ do
                 tab "Basic Controls" $ do
                     hbox $ do
-                        button "Button"
+                        -- button "Button"
                         checkbox "Checkbox"
                     label "This is a label. Right now, labels can only span one line."
                     group "Entries" $
@@ -286,6 +296,11 @@ instance {-# OVERLAPS #-} ToCUIControlIO a => ToCUIControlIO (UIWindow a) where
 data UIButton = UIButton { uiButtonText      :: String
                          , uiButtonOnClicked :: Maybe (IO ())
                          }
+
+instance {-# OVERLAPPING #-} Default UIButton  where
+    def = UIButton { uiButtonText = "Button"
+                   , uiButtonOnClicked = Nothing
+                   }
 
 instance {-# OVERLAPPING #-} ToCUIControlIO UIButton where
     toCUIControlIO UIButton{..} = toCUIControl <$> do

@@ -1,13 +1,21 @@
-{-# LANGUAGE CApiFFI                  #-}
-{-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE InterruptibleFFI         #-}
+{-# LANGUAGE CApiFFI                    #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE ForeignFunctionInterface   #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InterruptibleFFI           #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE UndecidableInstances       #-}
 -- |
 -- Provides a raw Haskell C FFI interface with libui
 -- This is fully untyped, passing void pointers everywhere.
 module Graphics.LibUI.FFI
   where
 
-import           Foreign   hiding (void)
+import           Control.Monad ((>=>))
+import           Foreign       hiding (void)
 import           Foreign.C
 
 -- * Basic API
@@ -16,13 +24,11 @@ import           Foreign.C
 -- At the moment the FFI doesn't care about any of the types.
 type VoidPtr = Ptr ()
 
--- |
--- We use type-aliases to make it easier to change in the future.
---
--- The libui library also casts them away; that's why we ignore them for now.
---
--- 'CUIControl' is a pointer to some control we can display
-type CUIControl = VoidPtr
+boolToCInt False = 0
+boolToCInt True = 1
+
+cintToBool 0 = False
+cintToBool _ = True
 
 -- |
 -- Start the main loop. Will block a thread, use 'runUILoop' instead.
@@ -65,10 +71,91 @@ foreign import capi "ui.h uiInit"
 foreign import capi "ui.h uiOnShouldQuit"
     c_uiOnShouldQuit :: FunPtr (VoidPtr -> IO CInt) -> VoidPtr -> IO ()
 
+-- ** CUIControl
+-- libui is decently object-oriented though written in C
+--
+-- All objects are subclasses of uiControl and casted to it for general
+-- operations; we get a similar interface with type-safety
+
 -- |
--- Display a CUIControl pointer
+-- 'CUIControl' is a `uiControl`
+newtype CUIControl = CUIControl VoidPtr
+
+class ToCUIControl a where
+    toCUIControl :: a -> CUIControl
+
+instance ToCUIControl CUIControl where
+    toCUIControl = id
+
+instance ToCUIControl (Ptr a) where
+    toCUIControl = CUIControl . castPtr
+
+class ToCUIControlIO a where
+    toCUIControlIO :: a -> IO CUIControl
+
+instance ToCUIControl a => ToCUIControlIO a where
+    toCUIControlIO = return . toCUIControl
+
+uiShow :: ToCUIControl a => a -> IO ()
+uiShow = c_uiControlShow . toCUIControl
+
+uiHide :: ToCUIControl a => a -> IO ()
+uiHide = c_uiControlHide . toCUIControl
+
+uiDestroy :: ToCUIControl a => a -> IO ()
+uiDestroy = c_uiControlDestroy . toCUIControl
+
+uiParent :: ToCUIControl a => a -> IO CUIControl
+uiParent = c_uiControlParent . toCUIControl
+
+uiSetParent :: (ToCUIControl a, ToCUIControl b) => a -> b -> IO ()
+uiSetParent control parent =
+    c_uiControlSetParent (toCUIControl control) (toCUIControl parent)
+
+uiControlTopLevel :: ToCUIControl a => a -> IO Bool
+uiControlTopLevel c = cintToBool <$> c_uiControlToplevel (toCUIControl c)
+
+uiControlVisible :: ToCUIControl a => a -> IO Bool
+uiControlVisible c = cintToBool <$> c_uiControlVisible (toCUIControl c)
+
+uiControlEnabled :: ToCUIControl a => a -> IO Bool
+uiControlEnabled c = cintToBool <$> c_uiControlEnabled (toCUIControl c)
+
+uiControlEnable :: ToCUIControl a => a -> IO ()
+uiControlEnable c = c_uiControlEnable (toCUIControl c)
+
+uiControlDisable :: ToCUIControl a => a -> IO ()
+uiControlDisable c = c_uiControlDisable (toCUIControl c)
+
+foreign import capi "ui.h uiControlDestroy"
+    c_uiControlDestroy :: CUIControl -> IO ()
+
+foreign import capi "ui.h uiControlParent"
+    c_uiControlParent :: CUIControl -> IO CUIControl
+
+foreign import capi "ui.h uiControlSetParent"
+    c_uiControlSetParent :: CUIControl -> CUIControl -> IO ()
+
+foreign import capi "ui.h uiControlToplevel"
+    c_uiControlToplevel :: CUIControl -> IO CInt
+
+foreign import capi "ui.h uiControlVisible"
+    c_uiControlVisible :: CUIControl -> IO CInt
+
 foreign import capi "ui.h uiControlShow"
     c_uiControlShow :: CUIControl -> IO ()
+
+foreign import capi "ui.h uiControlHide"
+    c_uiControlHide :: CUIControl -> IO ()
+
+foreign import capi "ui.h uiControlEnabled"
+    c_uiControlEnabled :: CUIControl -> IO CInt
+
+foreign import capi "ui.h uiControlEnable"
+    c_uiControlEnable :: CUIControl -> IO ()
+
+foreign import capi "ui.h uiControlDisable"
+    c_uiControlDisable :: CUIControl -> IO ()
 
 -- ** Functions for creating callbacks to pass to C and call back to Haskell
 
@@ -91,7 +178,9 @@ foreign import ccall "wrapper"
 
 -- ** Windows
 -- *** CUIWindow <- uiWindow
-type CUIWindow = VoidPtr
+newtype CUIWindow = CUIWindow (Ptr RawWindow)
+  deriving(ToCUIControl)
+data RawWindow
 
 -- | Get the window title
 foreign import capi "ui.h uiWindowTitle"
@@ -151,15 +240,15 @@ foreign import capi "ui.h uiWindowSetBorderless"
 
 -- | Set a child on the window
 foreign import capi "ui.h uiWindowSetChild"
-    c_uiWindowSetChild :: VoidPtr -> VoidPtr -> IO ()
+    c_uiWindowSetChild :: CUIWindow -> CUIControl -> IO ()
 
 -- | Is the window margined
 foreign import capi "ui.h uiWindowMargined"
-    c_uiWindowMargined :: VoidPtr -> IO CInt
+    c_uiWindowMargined :: CUIWindow -> IO CInt
 
 -- | Make the window margined
 foreign import capi "ui.h uiWindowSetMargined"
-    c_uiWindowSetMargined :: VoidPtr -> CInt -> IO ()
+    c_uiWindowSetMargined :: CUIWindow -> CInt -> IO ()
 
 -- | Create a new window
 foreign import capi "ui.h uiNewWindow"
@@ -167,7 +256,9 @@ foreign import capi "ui.h uiNewWindow"
 
 -- ** Buttons
 -- *** CUIButton <- uiButton
-type CUIButton = VoidPtr
+newtype CUIButton = CUIButton (Ptr RawButton)
+  deriving(ToCUIControl)
+data RawButton
 
 foreign import capi "ui.h uiButtonOnClicked"
     c_uiButtonOnClicked :: CUIButton -> FunPtr (CUIButton -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
@@ -183,7 +274,9 @@ foreign import capi "ui.h uiNewButton"
 
 -- ** Layout
 -- *** CUIBox <- uiBox
-type CUIBox = VoidPtr
+newtype CUIBox = CUIBox (Ptr RawBox)
+  deriving(ToCUIControl)
+data RawBox
 
 -- |
 -- Appends an item to the box
@@ -212,7 +305,9 @@ foreign import capi "ui.h uiNewVerticalBox"
 
 -- ** Input Types
 -- *** CUICheckbox <- uiCheckbox
-type CUICheckbox = VoidPtr
+newtype CUICheckbox = CUICheckbox (Ptr RawCheckbox)
+  deriving(ToCUIControl)
+data RawCheckbox
 
 foreign import capi "ui.h uiCheckboxText"
     c_uiCheckboxText :: CUICheckbox -> IO CString
@@ -233,7 +328,10 @@ foreign import capi "ui.h uiNewCheckbox"
     c_uiNewCheckbox :: CString -> IO CUICheckbox
 
 -- *** CUIEntry <- uiEntry
-type CUIEntry = VoidPtr
+newtype CUIEntry = CUIEntry (Ptr RawEntry)
+  deriving(ToCUIControl)
+data RawEntry
+
 foreign import capi "ui.h uiEntryText"
     c_uiEntryText :: CUIEntry -> IO CString
 
@@ -259,7 +357,10 @@ foreign import capi "ui.h uiNewSearchEntry"
     c_uiNewSearchEntry :: IO CUIEntry
 
 -- ** CUILabel <- uiLabel
-type CUILabel = VoidPtr
+newtype CUILabel = CUILabel (Ptr RawLabel)
+  deriving(ToCUIControl)
+data RawLabel
+
 foreign import capi "ui.h uiLabelText"
     c_uiLabelText :: CUILabel -> IO CString
 
@@ -270,7 +371,10 @@ foreign import capi "ui.h uiNewLabel"
     c_uiNewLabel :: CString -> IO CUILabel
 
 -- ** CUITab <- uiTab
-type CUITab = VoidPtr
+newtype CUITab = CUITab (Ptr RawTab)
+  deriving(ToCUIControl)
+data RawTab
+
 foreign import capi "ui.h uiTabAppend"
     c_uiTabAppend
       :: CUITab
@@ -300,7 +404,10 @@ foreign import capi "ui.h uiNewTab"
     c_uiNewTab :: IO CUITab
 
 -- ** CUIGroup <- uiGroup
-type CUIGroup = VoidPtr
+newtype CUIGroup = CUIGroup (Ptr RawGroup)
+  deriving(ToCUIControl)
+data RawGroup
+
 foreign import capi "ui.h uiGroupTitle"
     c_uiGroupTitle :: CUIGroup -> IO CString
 
@@ -320,7 +427,10 @@ foreign import capi "ui.h uiNewGroup"
     c_uiNewGroup :: CString -> IO CUIGroup
 
 -- ** CUISpinbox <- uiSpinbox
-type CUISpinbox = VoidPtr
+newtype CUISpinbox = CUISpinbox (Ptr RawSpinbox)
+  deriving(ToCUIControl)
+data RawSpinbox
+
 foreign import capi "ui.h uiSpinboxValue"
     c_uiSpinboxValue :: CUISpinbox -> IO CInt
 
@@ -334,7 +444,10 @@ foreign import capi "ui.h uiNewSpinbox"
     c_uiNewSpinbox :: CInt -> CInt -> IO CUISpinbox
 
 -- ** CUISlider <- uiSlider
-type CUISlider = VoidPtr
+newtype CUISlider = CUISlider (Ptr RawSlider)
+  deriving(ToCUIControl)
+data RawSlider
+
 foreign import capi "ui.h uiSliderValue"
     c_uiSliderValue :: CUISlider -> IO CInt
 
@@ -348,7 +461,10 @@ foreign import capi "ui.h uiNewSlider"
     c_uiNewSlider :: CInt -> CInt -> IO CUISlider
 
 -- ** CUIProgressBar <- uiProgressBar
-type CUIProgressBar = VoidPtr
+newtype CUIProgressBar = CUIProgressBar (Ptr RawProgressBar)
+  deriving(ToCUIControl)
+data RawProgressBar
+
 foreign import capi "ui.h uiProgressBarValue"
     c_uiProgressBarValue :: CUIProgressBar -> IO CInt
 
@@ -359,7 +475,10 @@ foreign import capi "ui.h uiNewProgressBar"
     c_uiNewProgressBar :: IO CUIProgressBar
 
 -- ** CUISeparator <- uiSeparator
-type CUISeparator = VoidPtr
+newtype CUISeparator = CUISeparator (Ptr RawSeparator)
+  deriving(ToCUIControl)
+data RawSeparator
+
 foreign import capi "ui.h uiNewHorizontalSeparator"
     c_uiNewHorizontalSeparator :: IO CUISeparator
 
@@ -367,7 +486,10 @@ foreign import capi "ui.h uiNewVerticalSeparator"
     c_uiNewVerticalSeparator :: IO CUISeparator
 
 -- ** CUICombobox <- uiCombobox
-type CUICombobox = VoidPtr
+newtype CUICombobox = CUICombobox (Ptr RawCombobox)
+  deriving(ToCUIControl)
+data RawCombobox
+
 foreign import capi "ui.h uiComboboxAppend"
     c_uiComboboxAppend :: CUICombobox -> CUIControl -> IO ()
 
@@ -384,7 +506,10 @@ foreign import capi "ui.h uiNewCombobox"
     c_uiNewCombobox :: IO CUICombobox
 
 -- ** CUIEditableCombobox <- uiEditableCombobox
-type CUIEditableCombobox = VoidPtr
+newtype CUIEditableCombobox = CUIEditableCombobox (Ptr RawEditableCombobox)
+  deriving(ToCUIControl)
+data RawEditableCombobox
+
 foreign import capi "ui.h uiEditableComboboxAppend"
     c_uiEditableComboboxAppend :: CUIEditableCombobox -> CUIControl -> IO ()
 
@@ -401,7 +526,10 @@ foreign import capi "ui.h uiNewEditableCombobox"
     c_uiNewEditableCombobox :: IO CUIEditableCombobox
 
 -- ** CUIRadioButtons <- uiRadioButtons
-type CUIRadioButtons = VoidPtr
+newtype CUIRadioButtons = CUIRadioButtons (Ptr RawRadioButtons)
+  deriving(ToCUIControl)
+data RawRadioButtons
+
 foreign import capi "ui.h uiRadioButtonsAppend"
     c_uiRadioButtonsAppend :: CUIRadioButtons -> CString -> IO ()
 
@@ -418,7 +546,10 @@ foreign import capi "ui.h uiNewRadioButtons"
     c_uiNewRadioButtons :: IO CUIRadioButtons
 
 -- ** CUIForm <- uiForm
-type CUIForm = VoidPtr
+newtype CUIForm = CUIForm (Ptr RawForm)
+  deriving(ToCUIControl)
+data RawForm
+
 foreign import capi "ui.h uiFormAppend"
     c_uiFormAppend
       :: CUIForm
@@ -449,7 +580,10 @@ foreign import capi "ui.h uiNewForm"
     c_uiNewForm :: IO CUIForm
 
 -- ** CUIMultilineEntry <- uiMultilineEntry
-type CUIMultilineEntry = VoidPtr
+newtype CUIMultilineEntry = CUIMultilineEntry (Ptr RawMultilineEntry)
+  deriving(ToCUIControl)
+data RawMultilineEntry
+
 foreign import capi "ui.h uiMultilineEntryText"
     c_uiMultilineEntryText :: CUIMultilineEntry -> IO CString
 
@@ -475,7 +609,10 @@ foreign import capi "ui.h uiNewNonWrappingMultilineEntry"
     c_uiNewNonWrappingMultilineEntry :: IO CUIMultilineEntry
 
 -- ** CUIMenuItem <- uiMenuItem
-type CUIMenuItem = VoidPtr
+newtype CUIMenuItem = CUIMenuItem (Ptr RawMenuItem)
+  deriving(ToCUIControl)
+data RawMenuItem
+
 foreign import capi "ui.h uiMenuItemEnable"
     c_uiMenuItemEnable :: CUIMenuItem -> IO ()
 
@@ -492,7 +629,10 @@ foreign import capi "ui.h uiMenuItemSetChecked"
     c_uiMenuItemSetChecked :: CUIMenuItem -> CInt -> IO ()
 
 -- ** CUIMenu <- uiMenu
-type CUIMenu = VoidPtr
+newtype CUIMenu = CUIMenu (Ptr RawMenu)
+  deriving(ToCUIControl)
+data RawMenu
+
 foreign import capi "ui.h uiMenuAppendItem"
     c_uiMenuAppendItem :: CUIMenu -> CString -> IO CUIMenuItem
 

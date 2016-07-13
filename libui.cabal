@@ -76,9 +76,9 @@ library
       ./vendor/libui/darwin/text.m
       ./vendor/libui/darwin/util.m
       ./vendor/libui/darwin/window.m
-  build-depends: base >=4.8
-               , reflex
-               , async
+  build-depends: async
+               , base >=4.8
+               , data-default
                , mtl
                , transformers
   exposed-modules: Graphics.LibUI
@@ -94,9 +94,9 @@ executable button-example
   main-is: ButtonExample.hs
   hs-source-dirs:
       examples
-  build-depends: base
-               , reflex
-               , async
+  build-depends: async
+               , base
+               , data-default
                , libui
                , mtl
                , transformers

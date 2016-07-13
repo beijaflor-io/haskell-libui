@@ -1,7 +1,8 @@
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE TupleSections     #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections       #-}
 module Graphics.LibUI.Types
   where
 
@@ -13,6 +14,7 @@ import           Control.Monad
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans
 import           Control.Monad.Writer
+import           Data.Default
 import           Data.String
 import           Foreign                  hiding (void)
 import qualified Foreign
@@ -23,29 +25,28 @@ import           Graphics.LibUI.MonadUI
 
 -- |
 -- Something that can be rendered with libui
-class ToCUIControl c where
-    toCUIControl :: c -> IO CUIControl
+-- class ToCUIControlIO c where
+--     toCUIControlIO :: c -> IO CUIControl
 
-data UIControl = UIControlWindow UIWindow
-               | UIControlButton UIButton
-               | UIControlBox UIBox
-               | UIControlCheckbox UICheckbox
-               | UIControlEntry UIEntry
-               | UIControlLabel UILabel
-               | UIControlTab UITab
-               | UIControlGroup UIGroup
-               | UIControlSpinbox UISpinbox
-               | UIControlSlider UISlider
-               | UIControlProgressBar UIProgressBar
-               | UIControlSeparator UISeparator
-               | UIControlCombobox UICombobox
-               | UIControlEditableCombobox UIEditableCombobox
-               | UIControlRadioButtons UIRadioButtons
-               | UIControlMultlineEntry UIMultilineEntry
-               | UIControlMenuItem UIMenuItem
-               | UIControlMenu UIMenu
+-- data UIControl = UIControlWindow UIWindow
+--                | UIControlButton UIButton
+--                | UIControlBox UIBox
+--                | UIControlCheckbox UICheckbox
+--                | UIControlEntry UIEntry
+--                | UIControlLabel UILabel
+--                | UIControlTab UITab
+--                | UIControlGroup UIGroup
+--                | UIControlSpinbox UISpinbox
+--                | UIControlSlider UISlider
+--                | UIControlProgressBar UIProgressBar
+--                | UIControlSeparator UISeparator
+--                | UIControlCombobox UICombobox
+--                | UIControlEditableCombobox UIEditableCombobox
+--                | UIControlRadioButtons UIRadioButtons
+--                | UIControlMultlineEntry UIMultilineEntry
+--                | UIControlMenuItem UIMenuItem
+--                | UIControlMenu UIMenu
 
-runUILoop :: UI a -> IO ()
 runUILoop ui = run >> putStrLn "I'm still here"
   where
     run = do
@@ -57,9 +58,9 @@ runUILoop ui = run >> putStrLn "I'm still here"
 
         mvRunning <- newEmptyMVar
 
-        forM_ cs $ \c -> do
-            cb <- c_wrap2 (const (const (void (abort mvRunning))))
-            c_uiWindowOnClosing c cb nullPtr
+        -- forM_ cs $ \c -> do
+        --     cb <- c_wrap2 (const (const (void (abort mvRunning))))
+        --     c_uiWindowOnClosing undefined cb nullPtr
         cb <- c_wrap1I (const (abort mvRunning))
         c_uiOnShouldQuit cb nullPtr
 
@@ -78,7 +79,6 @@ runUILoop ui = run >> putStrLn "I'm still here"
         --         c_uiMainStep 1
         --         loop mvRunning
         --     else return ()
-
     abort mvRunning = do
         print "abort"
         c_uiQuit
@@ -87,20 +87,20 @@ runUILoop ui = run >> putStrLn "I'm still here"
 
 window :: String -> Int -> Int -> Bool -> UI () -> UI ()
 window title width height hasMenubar child = UI $ do
-    c <- toCUIControl $ UIWindow title width height hasMenubar 1 child
+    c <- toCUIControlIO $ UIWindow title width height hasMenubar 1 child Nothing
     return ((), [c])
 
 button :: String -> UI ()
 button title = wrap (UIButton title)
 
-wrap :: ToCUIControl c => c -> UI ()
+wrap :: ToCUIControlIO c => c -> UI ()
 wrap toCUI = UI $ do
-    cui <- toCUIControl toCUI
+    cui <- toCUIControlIO toCUI
     return ((), [cui])
 
-wrapEmpty :: ToCUIControl c => c -> UI ()
+wrapEmpty :: ToCUIControlIO c => c -> UI ()
 wrapEmpty toCUI = UI $ do
-    cui <- toCUIControl toCUI
+    cui <- toCUIControlIO toCUI
     return ((), [])
 
 vbox :: UI a -> UI a
@@ -109,22 +109,24 @@ vbox = box UIVerticalBox
 hbox :: UI a -> UI a
 hbox = box UIHorizontalBox
 
-box :: (Num a1, ToCUIControl r) => (a1 -> [UIBoxChild] -> r) -> UI a -> UI a
+box
+  :: (Num a1, ToCUIControlIO r) =>
+     (a1 -> [UIBoxChild CUIControl] -> r) -> UI a -> UI a
 box boxtype ui = UI $ do
     (x, cs) <- runUI ui
-    c <- toCUIControl $ boxtype 1
+    c <- toCUIControlIO $ boxtype 1
         (map (UIBoxChild False) cs)
     return (x, [c])
 
 
 menu :: String -> [UIMenuItem] -> UI ()
 menu name items = UI $ do
-    c <- toCUIControl $ UIMenu name items
+    c <- toCUIControlIO $ UIMenu name items
     return ((), [])
 
 group :: String -> UI () -> UI ()
 group title items = UI $ do
-    c <- toCUIControl $ UIGroup title 1 (vbox items)
+    c <- toCUIControlIO $ UIGroup title 1 (vbox items)
     return ((), [c])
 
 progressbar :: Int -> UI ()
@@ -140,7 +142,7 @@ spinbox value min max = wrap (UISpinbox value min max)
 --     ts' <- forM ts $ \t -> do
 --         (r, (c:cs)) <- runUI t
 --         return (r, c)
---     c <- toCUIControl (UITab 1 ts')
+--     c <- toCUIControlIO (UITab 1 ts')
 --     return ((), [c])
 tabs :: Writer [UI String] () -> UI ()
 tabs wts = UI $ do
@@ -149,14 +151,13 @@ tabs wts = UI $ do
     ts' <- forM ts $ \t -> do
         (r, c:_) <- runUI t
         return (r, c)
-    c <- toCUIControl (UITab 1 ts')
+    c <- toCUIControlIO (UITab 1 ts')
     return ((), [c])
 
 tab :: String -> UI () -> Writer [UI String] ()
 tab title ui = do
     let ui' = UI $ do
             (_, c) <- runUI $ vbox ui
-            print c
             return (title, c)
     tell [ui']
 
@@ -177,6 +178,19 @@ passwordEntry t = wrap (UISearchEntry False t)
 
 form cs = wrap (UIForm cs)
 formItem x e = (x, e)
+
+-- stuff = runUILoop ui
+--   where
+--     ui = UI $ do
+--         let window = def { uiWindowTitle = "Hey there"
+--                          , uiWindowChild = def { uiBoxChildren = [ UIBoxChild False
+--                                                                               (UILabel "Hey")
+--                                                                  ]
+--                                                }
+--                          , uiWindowOnClosing = Just $ print "Bye!"
+--                          }
+--         c <- toCUIControlIO window
+--         return ((), [ c ])
 
 stuff :: IO ()
 stuff = runUILoop ui
@@ -205,76 +219,107 @@ stuff = runUILoop ui
                 tab "Data Choosers" mempty
 
 -- ** Windows
-data UIWindow = UIWindow { uiWindowTitle      :: String
-                         , uiWindowWidth      :: Int
-                         , uiWindowHeight     :: Int
-                         , uiWindowHasMenubar :: Bool
-                         , uiWindowMargin     :: Int
-                         , uiWindowChild      :: UI ()
-                         }
+instance {-# OVERLAPS #-} ToCUIControlIO a => ToCUIControlIO [a] where
+    toCUIControlIO cs = toCUIControl <$> do
+        vb <- c_uiNewVerticalBox
+        forM_ cs $ \c -> do
+            c' <- toCUIControlIO c
+            c_uiBoxAppend vb c' 1
+        return vb
 
-instance ToCUIControl UIWindow where
-    toCUIControl UIWindow{..} = do
+instance {-# OVERLAPS #-} ToCUIControlIO (UI a) where
+    toCUIControlIO ui = do
+        (_, cs) <- runUI ui
+        toCUIControlIO cs
+
+data UIWindow c =
+    UIWindow { uiWindowTitle      :: String
+             , uiWindowWidth      :: Int
+             , uiWindowHeight     :: Int
+             , uiWindowHasMenubar :: Bool
+             , uiWindowMargin     :: Int
+             , uiWindowChild      :: c
+             , uiWindowOnClosing  :: Maybe (IO ())
+             }
+
+instance Default (UIWindow c) where
+    def = UIWindow { uiWindowTitle = "haskell-libui"
+                   , uiWindowWidth = 680
+                   , uiWindowHeight = 300
+                   , uiWindowHasMenubar = True
+                   , uiWindowMargin = 0
+                   , uiWindowOnClosing = Nothing
+                   , uiWindowChild = error "uiWindowChild needs to be overwritten"
+                   }
+
+instance {-# OVERLAPS #-} ToCUIControlIO a => ToCUIControlIO (UIWindow a) where
+    toCUIControlIO UIWindow{..} = do
         w <- join $ c_uiNewWindow
             <$> newCString uiWindowTitle
             <*> return (fromIntegral uiWindowWidth)
             <*> return (fromIntegral uiWindowHeight)
             <*> return (if uiWindowHasMenubar then 1 else 0)
 
+        maybe
+            (return ())
+            (\onClosing -> do
+                 cb <- c_wrap2 (\_ _ -> onClosing)
+                 c_uiWindowOnClosing w (castFunPtr cb) nullPtr)
+            uiWindowOnClosing
         c_uiWindowSetMargined w (fromIntegral uiWindowMargin)
 
-        (_, cs) <- runUI uiWindowChild
-        case cs of
-            [c] -> c_uiWindowSetChild w c
-            (c:cs) -> do
-                vb <- c_uiNewVerticalBox
-                forM_ cs $ \c -> c_uiBoxAppend vb c 1
-                c_uiWindowSetChild w vb
-            _ -> return ()
-        return w
+        c <- toCUIControlIO uiWindowChild
+        c_uiWindowSetChild w c
+        return $ toCUIControl w
 
 -- ** Buttons
-data UIButton = UIButton { uiButtonText :: String
+data UIButton = UIButton { uiButtonText    :: String
+                         , uiButtonOnClick :: Maybe (IO ())
                          }
 
-instance ToCUIControl UIButton where
-    toCUIControl UIButton{..} =
-        join $ c_uiNewButton
-            <$> newCString uiButtonText
+instance {-# OVERLAPPING #-} ToCUIControlIO UIButton where
+    toCUIControlIO UIButton{..} = toCUIControl <$>
+        (c_uiNewButton =<< newCString uiButtonText)
 
 -- ** Boxes
-data UIBox = UIHorizontalBox { uiBoxPadding  :: Int
-                             , uiBoxChildren :: [UIBoxChild]
-                             }
-           | UIVerticalBox { uiBoxPadding  :: Int
-                           , uiBoxChildren :: [UIBoxChild]
-                           }
-
-data UIBoxChild = UIBoxChild { uiBoxChildStretchy :: Bool
-                             , uiBoxChildControl  :: CUIControl
+data UIBox c = UIHorizontalBox { uiBoxPadding  :: Int
+                               , uiBoxChildren :: [UIBoxChild c]
+                               }
+             | UIVerticalBox { uiBoxPadding  :: Int
+                             , uiBoxChildren :: [UIBoxChild c]
                              }
 
-instance ToCUIControl UIBox where
-    toCUIControl ui = do
+instance Default (UIBox c) where
+    def = UIVerticalBox { uiBoxPadding = 1
+                        , uiBoxChildren = []
+                        }
+
+data UIBoxChild c = UIBoxChild { uiBoxChildStretchy :: Bool
+                               , uiBoxChildControl  :: c
+                               }
+
+instance {-# OVERLAPS #-} ToCUIControlIO c => ToCUIControlIO (UIBox c) where
+    toCUIControlIO ui = do
         b <- case ui of
             UIVerticalBox{} -> c_uiNewVerticalBox
             UIHorizontalBox{} -> c_uiNewHorizontalBox
         c_uiBoxSetPadded b (fromIntegral (uiBoxPadding ui))
         forM_ (uiBoxChildren ui) $ \UIBoxChild{..} -> do
+            uiBoxChildControl' <- toCUIControlIO uiBoxChildControl
             let uiBoxChildStretchy' = if uiBoxChildStretchy then 1 else 0
-            c_uiBoxAppend b uiBoxChildControl uiBoxChildStretchy'
-        return b
+            c_uiBoxAppend b uiBoxChildControl' uiBoxChildStretchy'
+        return (toCUIControl b)
 
 -- ** Checkboxes
 data UICheckbox = UICheckbox { uiCheckboxChecked :: Bool
                              , uiCheckboxText    :: String
                              }
 
-instance ToCUIControl UICheckbox where
-    toCUIControl UICheckbox{..} = do
+instance {-# OVERLAPS #-} ToCUIControlIO UICheckbox where
+    toCUIControlIO UICheckbox{..} = do
         c <- c_uiNewCheckbox =<< newCString uiCheckboxText
         c_uiCheckboxSetChecked c (if uiCheckboxChecked then 1 else 0)
-        return c
+        return (toCUIControl c)
 
 -- ** Text inputs
 data UIEntry = UIEntry { uiEntryReadOnly :: Bool
@@ -287,72 +332,73 @@ data UIEntry = UIEntry { uiEntryReadOnly :: Bool
                              , uiEntryText     :: String
                              }
 
-instance ToCUIControl UIEntry where
-    toCUIControl UIEntry{..} = do
-        e <- c_uiNewEntry
-        c_uiEntrySetText e =<< newCString uiEntryText
-        c_uiEntrySetReadOnly e (if uiEntryReadOnly then 1 else 0)
-        return e
-    toCUIControl UIPasswordEntry{..} = do
-        e <- c_uiNewPasswordEntry
-        c_uiEntrySetText e =<< newCString uiEntryText
-        c_uiEntrySetReadOnly e (if uiEntryReadOnly then 1 else 0)
-        return e
-    toCUIControl UISearchEntry{..} = do
-        e <- c_uiNewSearchEntry
-        c_uiEntrySetText e =<< newCString uiEntryText
-        c_uiEntrySetReadOnly e (if uiEntryReadOnly then 1 else 0)
-        return e
+mkEntry mk entry = do
+    e <- mk
+    c_uiEntrySetText e =<< newCString (uiEntryText entry)
+    c_uiEntrySetReadOnly e (if uiEntryReadOnly entry then 1 else 0)
+    return (toCUIControl e)
+
+instance {-# OVERLAPS #-} ToCUIControlIO UIEntry where
+    toCUIControlIO e@UIEntry{} = mkEntry c_uiNewEntry e
+    toCUIControlIO e@UIPasswordEntry{} = mkEntry c_uiNewPasswordEntry e
+    toCUIControlIO e@UISearchEntry{} = mkEntry c_uiNewSearchEntry e
 
 -- ** Labels
 data UILabel = UILabel { uiLabelText :: String
                        }
 
-instance ToCUIControl UILabel where
-    toCUIControl UILabel{..} =
-        c_uiNewLabel =<< newCString uiLabelText
+instance Default UILabel where
+    def = UILabel { uiLabelText = ""
+                  }
+
+instance {-# OVERLAPS #-} ToCUIControlIO UILabel where
+    toCUIControlIO UILabel{..} =
+        toCUIControl <$> (c_uiNewLabel =<< newCString uiLabelText)
 
 -- ** Text Forms
 data UIForm = UIForm [(String, UI ())]
 
-instance ToCUIControl UIForm where
-    toCUIControl (UIForm cs) = do
+instance {-# OVERLAPS #-} ToCUIControlIO UIForm where
+    toCUIControlIO (UIForm cs) = do
         f <- c_uiNewForm
         c_uiFormSetPadded f 10
         forM_ cs $ \(n, c) -> do
             n' <- newCString n
             (_, [c']) <- runUI c
             c_uiFormAppend f n' c' 1
-        return f
+        return (toCUIControl f)
 
 -- ** Tabs
-data UITab = UITab { uiTabMargin   :: Int
-                   , uiTabChildren :: [(String, CUIControl)]
-                   }
+data UITab c =
+    UITab { uiTabMargin   :: Int
+          , uiTabChildren :: [(String, c)]
+          }
 
-instance ToCUIControl UITab where
-    toCUIControl UITab{..} = do
+instance {-# OVERLAPS #-} ToCUIControl c => ToCUIControlIO (UITab c) where
+    toCUIControlIO UITab{..} = do
         t <- c_uiNewTab
         forM_ uiTabChildren $ \(n, c) -> do
             print n
             n' <- newCString n
-            c_uiTabAppend t n' c
+            c' <- toCUIControlIO c
+            c_uiTabAppend t n' c'
         -- c_uiTabSetMargined t (fromIntegral uiTabMargin) 0
-        return t
+        return (toCUIControl t)
 
 -- ** Groups
-data UIGroup = UIGroup { uiGroupTitle  :: String
-                       , uiGroupMargin :: Int
-                       , uiGroupChild  :: UI ()
-                       }
+data UIGroup c =
+    UIGroup { uiGroupTitle  :: String
+            , uiGroupMargin :: Int
+            , uiGroupChild  :: c
+            }
 
-instance ToCUIControl UIGroup where
-    toCUIControl UIGroup{..} = do
+instance {-# OVERLAPS #-} ToCUIControlIO c => ToCUIControlIO (UIGroup c) where
+    toCUIControlIO UIGroup{..} = do
         g <- c_uiNewGroup =<< newCString uiGroupTitle
         c_uiGroupSetMargined g (fromIntegral uiGroupMargin)
-        (_, [child]) <- runUI uiGroupChild
+        child <- toCUIControlIO uiGroupChild
         c_uiGroupSetChild g child
-        return g
+        return (toCUIControl g)
 
 -- ** Sliders
 data UISpinbox = UISpinbox { uiSpinboxValue :: Int
@@ -360,75 +406,75 @@ data UISpinbox = UISpinbox { uiSpinboxValue :: Int
                            , uiSpinboxMax   :: Int
                            }
 
-instance ToCUIControl UISpinbox where
-    toCUIControl UISpinbox{..} = do
+instance {-# OVERLAPS #-} ToCUIControlIO UISpinbox where
+    toCUIControlIO UISpinbox{..} = do
         sb <- c_uiNewSpinbox (fromIntegral uiSpinboxMin) (fromIntegral uiSpinboxMax)
         c_uiSpinboxSetValue sb (fromIntegral uiSpinboxValue)
         -- c_uiProgressBarSetValue pb (fromIntegral uiProgressBarValue)
-        return sb
+        return (toCUIControl sb)
 
 data UISlider = UISlider { uiSliderValue :: Int
                          , uiSliderMin   :: Int
                          , uiSliderMax   :: Int
                          }
 
-instance ToCUIControl UISlider where
-    toCUIControl UISlider{..} = do
+instance {-# OVERLAPS #-} ToCUIControlIO UISlider where
+    toCUIControlIO UISlider{..} = do
         s <- c_uiNewSlider (fromIntegral uiSliderMin) (fromIntegral uiSliderMax)
         c_uiSliderSetValue s (fromIntegral uiSliderValue)
-        return s
+        return (toCUIControl s)
 
 data UIProgressBar = UIProgressBar { uiProgressBarValue :: Int
                                    }
 
-instance ToCUIControl UIProgressBar where
-    toCUIControl UIProgressBar{..} = do
+instance {-# OVERLAPS #-} ToCUIControlIO UIProgressBar where
+    toCUIControlIO UIProgressBar{..} = do
         pb <- c_uiNewProgressBar
         c_uiProgressBarSetValue pb (fromIntegral uiProgressBarValue)
-        return pb
+        return (toCUIControl pb)
 
 -- ** Separators
 data UISeparator = UIHorizontalSeparator
                  | UIVerticalSeparator
 
-instance ToCUIControl UISeparator where
-    toCUIControl UIHorizontalSeparator = c_uiNewHorizontalSeparator
-    toCUIControl UIVerticalSeparator = c_uiNewVerticalSeparator
+instance {-# OVERLAPS #-} ToCUIControlIO UISeparator where
+    toCUIControlIO UIHorizontalSeparator = toCUIControl <$> c_uiNewHorizontalSeparator
+    toCUIControlIO UIVerticalSeparator = toCUIControl <$> c_uiNewVerticalSeparator
 
 -- ** Selects
 data UICombobox = UICombobox { uiComboboxSelected :: Bool
                              }
 
-instance ToCUIControl UICombobox where
-    toCUIControl UICombobox{..} = do
+instance {-# OVERLAPS #-} ToCUIControlIO UICombobox where
+    toCUIControlIO UICombobox{..} = do
         cb <- c_uiNewCombobox
         c_uiComboboxSetSelected cb (if uiComboboxSelected then 1 else 0)
-        return cb
+        return (toCUIControl cb)
 
 data UIEditableCombobox = UIEditableCombobox { uiEditableComboboxText :: String
                                              }
 
-instance ToCUIControl UIEditableCombobox where
-    toCUIControl UIEditableCombobox{..} = do
+instance {-# OVERLAPS #-} ToCUIControlIO UIEditableCombobox where
+    toCUIControlIO UIEditableCombobox{..} = do
         cb <- c_uiNewEditableCombobox
         c_uiEditableComboboxSetText cb =<< newCString uiEditableComboboxText
-        return cb
+        return (toCUIControl cb)
 
 data UIRadioButtons = UIRadioButtons { uiRadioButtonsSelected :: Int
                                      }
 
-instance ToCUIControl UIRadioButtons where
-    toCUIControl UIRadioButtons{..} =
-        c_uiNewRadioButtons
+instance {-# OVERLAPS #-} ToCUIControlIO UIRadioButtons where
+    toCUIControlIO UIRadioButtons{..} =
+        toCUIControl <$> c_uiNewRadioButtons
 
 -- ** Textarea
-data UIMultilineEntry = UIMultilineEntry { uiMultilineEntryText    :: String
-                                        , uiMultilineEntryReadOnly :: Bool
-                                        }
+data UIMultilineEntry = UIMultilineEntry { uiMultilineEntryText     :: String
+                                         , uiMultilineEntryReadOnly :: Bool
+                                         }
 
-instance ToCUIControl UIMultilineEntry where
-    toCUIControl UIMultilineEntry{..} =
-        c_uiNewMultilineEntry
+instance {-# OVERLAPS #-} ToCUIControlIO UIMultilineEntry where
+    toCUIControlIO UIMultilineEntry{..} =
+        toCUIControl <$> c_uiNewMultilineEntry
 
 -- ** Menus
 
@@ -441,14 +487,12 @@ data UIMenu = UIMenu { uiMenuName  :: String
                      , uiMenuItems :: [UIMenuItem]
                      }
 
-
-instance ToCUIControl UIMenu where
-    toCUIControl UIMenu{..} = do
+instance {-# OVERLAPS #-} ToCUIControlIO UIMenu where
+    toCUIControlIO UIMenu{..} = do
         m <- c_uiNewMenu =<< newCString uiMenuName
         forM_ uiMenuItems $ \item ->
             appendMenuItem m item
-        print "Menu created"
-        return m
+        return $ toCUIControl m
 
 -- |
 -- Appends a menu item to a CUIMenu

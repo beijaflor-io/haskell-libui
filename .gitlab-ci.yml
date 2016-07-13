@@ -1,0 +1,7 @@
+stages:
+  - build
+
+stack-build:
+  stage: build
+  script:
+    - stack build

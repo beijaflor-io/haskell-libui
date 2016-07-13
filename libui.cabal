@@ -24,7 +24,7 @@ library
   -- ghc-options: -optl-Wl,-rpath,'$ORIGIN'"
   frameworks: Foundation CoreFoundation AppKit Cocoa
   if os(linux)
-    extra-libraries: gtk
+    extra-libraries: gtk-3
   -- extra-libraries: ui
   extra-lib-dirs: /Users/yamadapc/program/github.com/beijaflor-io/haskell-libui/vendor/libui/build/out/
   include-dirs: .  ./vendor/libui/ ./vendor/libui/common/ ./vendor/libui/darwin/

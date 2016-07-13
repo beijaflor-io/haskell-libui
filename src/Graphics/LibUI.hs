@@ -8,6 +8,9 @@ module Graphics.LibUI
     ( module Graphics.LibUI.FFI
     , module Graphics.LibUI.MonadUI
     , module Graphics.LibUI.Types
+
+    , Default (..)
+    , def
     )
   where
 
@@ -18,6 +21,7 @@ import           Control.Exception
 import           Control.Monad
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans
+import           Data.Default
 import           Data.String
 import           Foreign                  hiding (void)
 import qualified Foreign                  as Foreign

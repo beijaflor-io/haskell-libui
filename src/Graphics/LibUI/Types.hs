@@ -58,27 +58,26 @@ runUILoop ui = run >> putStrLn "I'm still here"
 
         mvRunning <- newEmptyMVar
 
-        -- forM_ cs $ \c -> do
-        --     cb <- c_wrap2 (const (const (void (abort mvRunning))))
-        --     c_uiWindowOnClosing undefined cb nullPtr
+        forM_ cs $ \c -> do
+            cb <- castFunPtr <$> c_wrap2 (const (const (void (abort mvRunning))))
+            let (CUIControl ptr) = c
+            c_uiWindowOnClosing (CUIWindow (castPtr ptr)) cb nullPtr
         cb <- c_wrap1I (const (abort mvRunning))
         c_uiOnShouldQuit cb nullPtr
 
-        -- c_uiMainSteps
+        c_uiMainSteps
         print "Start"
 
         loop mvRunning
         takeMVar mvRunning `catch` \UserInterrupt -> do
             print "interrupt"
             void (abort mvRunning)
-    loop mvRunning =
-        c_uiMain
-        -- e <- isEmptyMVar mvRunning
-        -- if True -- || e
-        --     then do
-        --         c_uiMainStep 1
-        --         loop mvRunning
-        --     else return ()
+    loop mvRunning = do
+        -- c_uiMain
+        e <- isEmptyMVar mvRunning
+        when e $ do
+            c_uiMainStep 0
+            loop mvRunning
     abort mvRunning = do
         print "abort"
         c_uiQuit
@@ -87,11 +86,16 @@ runUILoop ui = run >> putStrLn "I'm still here"
 
 window :: String -> Int -> Int -> Bool -> UI () -> UI ()
 window title width height hasMenubar child = UI $ do
-    c <- toCUIControlIO $ UIWindow title width height hasMenubar 1 child Nothing
+    c <- toCUIControlIO $ def { uiWindowTitle = title
+                              , uiWindowWidth = width
+                              , uiWindowHeight = height
+                              , uiWindowHasMenubar = hasMenubar
+                              , uiWindowChild = child
+                              }
     return ((), [c])
 
 button :: String -> UI ()
-button title = wrap (UIButton title)
+button title = wrap (UIButton title Nothing)
 
 wrap :: ToCUIControlIO c => c -> UI ()
 wrap toCUI = UI $ do
@@ -138,6 +142,8 @@ slider value min max = wrap (UISlider value min max)
 spinbox :: Int -> Int -> Int -> UI ()
 spinbox value min max = wrap (UISpinbox value min max)
 
+-- render = wrap
+
 -- tabs ts = UI $ do
 --     ts' <- forM ts $ \t -> do
 --         (r, (c:cs)) <- runUI t
@@ -164,8 +170,10 @@ tab title ui = do
 checkbox :: String -> UI ()
 checkbox t = wrap (UICheckbox False t)
 
-label :: String -> UI ()
-label t = wrap (UILabel t)
+label :: String -> UI CUILabel
+label t = UI $ do
+    cui@(CUIControl ptr) <- toCUIControlIO (UILabel t)
+    return (CUILabel (castPtr ptr), [cui])
 
 entry :: String -> UI ()
 entry t = wrap (UIEntry False t)
@@ -233,13 +241,14 @@ instance {-# OVERLAPS #-} ToCUIControlIO (UI a) where
         toCUIControlIO cs
 
 data UIWindow c =
-    UIWindow { uiWindowTitle      :: String
-             , uiWindowWidth      :: Int
-             , uiWindowHeight     :: Int
-             , uiWindowHasMenubar :: Bool
-             , uiWindowMargin     :: Int
-             , uiWindowChild      :: c
-             , uiWindowOnClosing  :: Maybe (IO ())
+    UIWindow { uiWindowTitle                :: String
+             , uiWindowWidth                :: Int
+             , uiWindowHeight               :: Int
+             , uiWindowHasMenubar           :: Bool
+             , uiWindowMargin               :: Int
+             , uiWindowChild                :: c
+             , uiWindowOnContentSizeChanged :: Maybe ((Int, Int) -> IO ())
+             , uiWindowOnClosing            :: Maybe (IO ())
              }
 
 instance Default (UIWindow c) where
@@ -249,6 +258,7 @@ instance Default (UIWindow c) where
                    , uiWindowHasMenubar = True
                    , uiWindowMargin = 0
                    , uiWindowOnClosing = Nothing
+                   , uiWindowOnContentSizeChanged = Nothing
                    , uiWindowChild = error "uiWindowChild needs to be overwritten"
                    }
 
@@ -273,13 +283,20 @@ instance {-# OVERLAPS #-} ToCUIControlIO a => ToCUIControlIO (UIWindow a) where
         return $ toCUIControl w
 
 -- ** Buttons
-data UIButton = UIButton { uiButtonText    :: String
-                         , uiButtonOnClick :: Maybe (IO ())
+data UIButton = UIButton { uiButtonText      :: String
+                         , uiButtonOnClicked :: Maybe (IO ())
                          }
 
 instance {-# OVERLAPPING #-} ToCUIControlIO UIButton where
-    toCUIControlIO UIButton{..} = toCUIControl <$>
-        (c_uiNewButton =<< newCString uiButtonText)
+    toCUIControlIO UIButton{..} = toCUIControl <$> do
+        cbtn <- c_uiNewButton =<< newCString uiButtonText
+        maybe
+            (return ())
+            (\onClick -> do
+                    cb <- c_wrap2 (\_ _ -> onClick)
+                    c_uiButtonOnClicked cbtn (castFunPtr cb) nullPtr)
+            uiButtonOnClicked
+        return cbtn
 
 -- ** Boxes
 data UIBox c = UIHorizontalBox { uiBoxPadding  :: Int

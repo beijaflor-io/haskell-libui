@@ -97,10 +97,11 @@ window title width height hasMenubar child = UI $ do
 -- button :: String -> UI ()
 -- button title = wrap (UIButton title Nothing)
 
-wrap :: ToCUIControlIO c => c -> UI ()
+wrap :: ToCUIControlIO c => c -> UI c
 wrap toCUI = UI $ do
-    cui <- toCUIControlIO toCUI
-    return ((), [cui])
+    (CUIControl ptr) <- toCUIControlTup toCUI
+    let cuip = toCUIPointerType ptr
+    return (cuip, [cui])
 
 wrapEmpty :: ToCUIControlIO c => c -> UI ()
 wrapEmpty toCUI = UI $ do

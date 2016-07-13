@@ -7,6 +7,7 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
 -- |
 -- Provides a raw Haskell C FFI interface with libui
@@ -83,6 +84,8 @@ newtype CUIControl = CUIControl VoidPtr
 
 class ToCUIControl a where
     toCUIControl :: a -> CUIControl
+    toCUIControlTup :: a -> (a, CUIControl)
+    toCUIControlTup x = (x, toCUIControl x)
 
 instance ToCUIControl CUIControl where
     toCUIControl = id

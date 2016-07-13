@@ -15,7 +15,7 @@ main = do
                      counter <- label ""
                      btn <- button
                          def { uiButtonText = "Should be simple"
-                             , uiButtonOnClicked = Just $ do
+                             , uiButtonOnClicked = Just $ mdo
                                      print time
                                      currentTime <- getCurrentTime
                                      setText time ("Simple UI" ++ show currentTime)

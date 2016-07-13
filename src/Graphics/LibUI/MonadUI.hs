@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Graphics.LibUI.MonadUI where
 
@@ -31,10 +32,8 @@ instance Monoid a => Monoid (UI a) where
         return (a `mappend` b, cui1 ++ cui2)
 
 instance MonadFix UI where
-    -- mfix :: (a -> UI a) -> UI a
-    -- mfix :: (a -> UI { runUI :: IO (a, [CUIControl]) }) -> UI {runUI :: IO (a, [CUIControl])}
     mfix f = UI $ do
-        x <- fixIO (\x -> fst <$> runUI (f x))
+        x <- fixIO (fmap fst . runUI . f)
         return (x, [])
 
 instance Applicative UI where

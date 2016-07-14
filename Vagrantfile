@@ -64,6 +64,6 @@ Vagrant.configure(2) do |config|
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
     sudo bash -e /vagrant/provision.sh
-    cd /vagrant && make
+    cd /vagrant && sudo make
   SHELL
 end

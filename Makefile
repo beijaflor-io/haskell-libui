@@ -1,5 +1,5 @@
 build:
-	stack build --install-ghc
+	stack build --install-ghc --allow-different-user
 
 provision-ubuntu:
 	bash -e provision.sh

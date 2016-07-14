@@ -14,8 +14,7 @@ main = do
             threadDelay (1000 * 100)
             v <- getValue pg
             print (v, i)
-            q <- c_wrap1 (\_ -> setValue pg i)
-            c_uiQueueMain q nullPtr
+            uiQueueMain (setValue pg i)
         c_uiQuit
         exitSuccess
 

@@ -85,6 +85,11 @@ foreign import capi "ui.h uiInit"
 foreign import capi "ui.h uiQueueMain"
     c_uiQueueMain :: FunPtr (DataPtr -> IO ()) -> DataPtr -> IO ()
 
+uiQueueMain :: IO () -> IO ()
+uiQueueMain a = do
+    a' <- c_wrap1 (const a)
+    c_uiQueueMain a' nullPtr
+
 -- |
 -- Initialize the UI
 foreign import capi "ui.h uiOnShouldQuit"

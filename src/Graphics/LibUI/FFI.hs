@@ -236,8 +236,11 @@ foreign import ccall "wrapper"
 -- -- | An action that creates a window with a child
 -- myWindow :: 'CUIControl' -> IO 'CUIWindow'
 -- myButton cui = do
---     title <- 'newCString' "Hello world"
---     win <- 'c_uiNewWindow' title 680 400 1
+--     let title = "Hello World"
+--         width = 680
+--         height = 400
+--         hasMenubar = True
+--     win <- 'uiNewWindow' title width height hasMenubar
 --     -- Get hold of the window pointer
 --     win ``setChild`` cui
 --     -- Add the control as a child of the window
@@ -246,7 +249,40 @@ foreign import ccall "wrapper"
 -- @
 newtype CUIWindow = CUIWindow (Ptr RawWindow)
   deriving(Show, ToCUIControl)
+
 data RawWindow
+
+-- |
+-- Wrapped version of `c_uiNewWindow`
+uiNewWindow
+    :: String
+    -- ^ Title
+    -> Int
+    -- ^ Width
+    -> Int
+    -- ^ Height
+    -> Bool
+    -- ^ Has menubar
+    -> IO CUIWindow
+uiNewWindow t w h hasMenubar = withCString t $ \t' ->
+    c_uiNewWindow t' (fromIntegral w) (fromIntegral h) (boolToNum hasMenubar)
+
+uiWindowTitle :: CUIWindow -> IO String
+uiWindowTitle = c_uiWindowTitle >=> peekCString
+
+uiWindowPosition :: CUIWindow -> IO (Int, Int)
+uiWindowPosition w = alloca $ \x -> alloca $ \y -> do
+    c_uiWindowPosition w x y
+    x' <- peek x
+    y' <- peek y
+    return (fromIntegral x', fromIntegral y')
+
+uiWindowSetPosition :: CUIWindow -> (Int, Int) -> IO ()
+uiWindowSetPosition w (x, y) =
+    c_uiWindowSetPosition w (fromIntegral x) (fromIntegral y)
+
+uiWindowCenter :: CUIWindow -> IO ()
+uiWindowCenter = c_uiWindowCenter
 
 -- | Get the window title
 foreign import capi "ui.h uiWindowTitle"
@@ -383,7 +419,7 @@ foreign import capi "ui.h uiButtonSetText"
     c_uiButtonSetText :: CUIButton -> CString -> IO ()
 
 instance HasSetText CUIButton where
-    setText btn = newCString >=> c_uiButtonSetText btn
+    setText btn s = withCString s (c_uiButtonSetText btn)
 
 foreign import capi "ui.h uiButtonText"
     c_uiButtonText :: CUIButton -> CString
@@ -435,7 +471,7 @@ foreign import capi "ui.h uiCheckboxSetText"
     c_uiCheckboxSetText :: CUICheckbox -> CString -> IO ()
 
 instance HasSetText CUICheckbox where
-    setText btn = newCString >=> c_uiCheckboxSetText btn
+    setText btn s = withCString s (c_uiCheckboxSetText btn)
 
 foreign import capi "ui.h uiCheckboxOnToggled"
     c_uiCheckboxOnToggled :: CUICheckbox -> FunPtr (CUICheckbox -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
@@ -465,7 +501,7 @@ foreign import capi "ui.h uiEntrySetText"
     c_uiEntrySetText :: CUIEntry -> CString -> IO ()
 
 instance HasSetText CUIEntry where
-    setText c = newCString >=> c_uiEntrySetText c
+    setText c s = withCString s (c_uiEntrySetText c)
 
 foreign import capi "ui.h uiEntryOnChanged"
     c_uiEntryOnChanged :: CUIEntry -> FunPtr (CUIEntry -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
@@ -497,7 +533,7 @@ foreign import capi "ui.h uiLabelSetText"
     c_uiLabelSetText :: CUILabel -> CString -> IO ()
 
 instance HasSetText CUILabel where
-    setText c = newCString >=> c_uiLabelSetText c
+    setText c s = withCString s (c_uiLabelSetText c)
 
 foreign import capi "ui.h uiNewLabel"
     c_uiNewLabel :: CString -> IO CUILabel
@@ -657,7 +693,7 @@ foreign import capi "ui.h uiEditableComboboxSetText"
     c_uiEditableComboboxSetText :: CUIEditableCombobox -> CString -> IO ()
 
 instance HasSetText CUIEditableCombobox where
-    setText c = newCString >=> c_uiEditableComboboxSetText c
+    setText c s = withCString s (c_uiEditableComboboxSetText c)
 
 foreign import capi "ui.h uiEditableComboboxOnChanged"
     c_uiEditableComboboxOnChanged :: CUIEditableCombobox -> FunPtr (CUIEditableCombobox -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
@@ -731,7 +767,7 @@ foreign import capi "ui.h uiMultilineEntrySetText"
     c_uiMultilineEntrySetText :: CUIMultilineEntry -> CString -> IO ()
 
 instance HasSetText CUIMultilineEntry where
-    setText c = newCString >=> c_uiMultilineEntrySetText c
+    setText c s = withCString s (c_uiMultilineEntrySetText c)
 
 foreign import capi "ui.h uiMultilineEntryAppend"
     c_uiMultilineEntryAppend :: CUIMultilineEntry -> CString -> IO ()

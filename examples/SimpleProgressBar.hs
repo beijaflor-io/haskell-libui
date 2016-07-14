@@ -24,8 +24,5 @@ main = do
     wn `setChild` vb
     wn `onClosing` c_uiQuit
 
-    -- fmenu <- uiNewMenu "file"
-    -- c_uiMenuAppendQuitItem fmenu
-
     uiShow wn
     c_uiMain

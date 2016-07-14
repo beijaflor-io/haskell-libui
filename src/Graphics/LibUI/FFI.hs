@@ -11,7 +11,11 @@
 {-# LANGUAGE UndecidableInstances       #-}
 -- |
 -- Provides a raw Haskell C FFI interface with libui
--- This is fully untyped, passing void pointers everywhere.
+--
+-- All functions and newtype pointer wrappers imported from the library are
+-- prefixed with @CUI...@ or @c_...@
+--
+-- Only the raw C API is available on this module
 module Graphics.LibUI.FFI
   where
 
@@ -143,8 +147,8 @@ uiDestroy = c_uiControlDestroy . toCUIControl
 
 -- |
 -- Get a control's parent ('c_uiControlParent')
-uiParent :: ToCUIControl a => a -> IO CUIControl
-uiParent = c_uiControlParent . toCUIControl
+uiGetParent :: ToCUIControl a => a -> IO CUIControl
+uiGetParent = c_uiControlParent . toCUIControl
 
 -- |
 -- Set a control's parent ('c_uiControlSetParent')
@@ -164,18 +168,14 @@ uiControlVisible c = numToBool <$> c_uiControlVisible (toCUIControl c)
 
 -- |
 -- Get if a control is enabled ('c_uiControlEnabled')
-uiControlEnabled :: ToCUIControl a => a -> IO Bool
-uiControlEnabled c = numToBool <$> c_uiControlEnabled (toCUIControl c)
+uiControlGetEnabled :: ToCUIControl a => a -> IO Bool
+uiControlGetEnabled c = numToBool <$> c_uiControlEnabled (toCUIControl c)
 
 -- |
--- Set if a control is enabled ('c_uiControlEnable')
-uiControlEnable :: ToCUIControl a => a -> IO ()
-uiControlEnable c = c_uiControlEnable (toCUIControl c)
-
--- |
--- Set if a control is disabled ('c_uiControlDisable')
-uiControlDisable :: ToCUIControl a => a -> IO ()
-uiControlDisable c = c_uiControlDisable (toCUIControl c)
+-- Set if a control is enabled ('c_uiControlEnable' & 'c_uiControlDisable')
+uiControlSetEnabled :: ToCUIControl a => a -> Bool -> IO ()
+uiControlSetEnabled c True = c_uiControlEnable (toCUIControl c)
+uiControlSetEnabled c False = c_uiControlDisable (toCUIControl c)
 
 foreign import capi "ui.h uiControlDestroy"
     c_uiControlDestroy :: CUIControl -> IO ()
@@ -267,11 +267,11 @@ uiNewWindow
 uiNewWindow t w h hasMenubar = withCString t $ \t' ->
     c_uiNewWindow t' (fromIntegral w) (fromIntegral h) (boolToNum hasMenubar)
 
-uiWindowTitle :: CUIWindow -> IO String
-uiWindowTitle = c_uiWindowTitle >=> peekCString
+uiWindowGetTitle :: CUIWindow -> IO String
+uiWindowGetTitle = c_uiWindowTitle >=> peekCString
 
-uiWindowPosition :: CUIWindow -> IO (Int, Int)
-uiWindowPosition w = alloca $ \x -> alloca $ \y -> do
+uiWindowGetPosition :: CUIWindow -> IO (Int, Int)
+uiWindowGetPosition w = alloca $ \x -> alloca $ \y -> do
     c_uiWindowPosition w x y
     x' <- peek x
     y' <- peek y

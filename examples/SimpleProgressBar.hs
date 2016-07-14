@@ -15,16 +15,16 @@ main = do
             v <- getValue pg
             print (v, i)
             uiQueueMain (setValue pg i)
-        c_uiQuit
+        uiQuit
         exitSuccess
-
-    wn <- uiNewWindow "Hello World" 680 400 True
-    wn `setMargined` True
 
     vb <- c_uiNewHorizontalBox
     vb `appendChild` pg
-    wn `setChild` vb
+
+    wn <- uiNewWindow "Hello World" 680 400 True
+    wn `setMargined` True
     wn `onClosing` uiQuit
+    wn `setChild` vb
 
     uiShow wn
     uiMain

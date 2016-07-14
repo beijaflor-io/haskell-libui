@@ -854,7 +854,3 @@ foreign import capi "ui.h uiMsgBox"
 
 foreign import capi "ui.h uiMsgBoxError"
     c_uiMsgBoxError :: CUIWindow -> CString -> CString -> IO ()
--- tring -> CString -> IO ()
-
--- foreign import capi "ui.h uiMsgBoxError"
---     c_uiMsgBoxError :: CUIWindow -> CString -> CString -> IO ()

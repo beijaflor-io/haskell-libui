@@ -74,8 +74,16 @@ foreign import capi "ui.h uiUninit"
 
 -- |
 -- Initialize the UI options
+uiInit :: IO ()
+uiInit = alloca $ \ptr -> do
+    poke ptr (CSize (fromIntegral (sizeOf (CSize 0))))
+    c_uiInit ptr
+
 foreign import capi "ui.h uiInit"
     c_uiInit :: Ptr CSize -> IO ()
+
+foreign import capi "ui.h uiQueueMain"
+    c_uiQueueMain :: FunPtr (DataPtr -> IO ()) -> DataPtr -> IO ()
 
 -- |
 -- Initialize the UI
@@ -120,6 +128,16 @@ class HasSetText s where
     setText :: s -> String -> IO ()
 
 -- |
+-- Controls with `ui...SetValue` functions
+class HasSetValue s where
+    setValue :: s -> Int -> IO ()
+
+-- |
+-- Controls with `ui...GetValue` functions
+class HasGetValue s where
+    getValue :: s -> IO Int
+
+-- |
 -- Controls with `ui...OnClicked` functions
 class HasOnClicked s where
     onClick :: s -> IO () -> IO ()
@@ -133,6 +151,12 @@ class HasSetChecked s where
 -- Controls with `ui...SetChild` functions
 class HasSetChild s where
     setChild :: ToCUIControlIO a => s -> a -> IO ()
+
+class HasAppendChild s where
+    appendChild :: ToCUIControlIO a => s -> a -> IO ()
+
+class HasOnClosing w where
+    onClosing :: w -> IO () -> IO ()
 
 -- |
 -- Displays a control ('c_uiControlShow')
@@ -352,6 +376,11 @@ foreign import capi "ui.h uiWindowOnContentSizeChanged"
 foreign import capi "ui.h uiWindowOnClosing"
     c_uiWindowOnClosing :: CUIWindow -> FunPtr (CUIWindow -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
+instance HasOnClosing CUIWindow where
+    onClosing w a = do
+        f <- castFunPtr <$> c_wrap2 (\_ _ -> a)
+        c_uiWindowOnClosing w f nullPtr
+
 -- | Is the window borderless?
 foreign import capi "ui.h uiWindowBorderless"
     c_uiWindowBorderless :: CUIWindow -> IO CInt
@@ -423,6 +452,11 @@ foreign import capi "ui.h uiBoxAppend"
         -> CInt
         -- ^ Whether the box is stretchy
         -> IO ()
+
+instance HasAppendChild CUIBox where
+    appendChild b c = do
+        c' <- toCUIControlIO c
+        c_uiBoxAppend b c' 1
 
 foreign import capi "ui.h uiBoxDelete"
     c_uiBoxDelete :: CUIBox -> CInt -> IO ()
@@ -626,6 +660,9 @@ foreign import capi "ui.h uiSliderValue"
 foreign import capi "ui.h uiSliderSetValue"
     c_uiSliderSetValue :: CUISlider -> CInt -> IO ()
 
+instance HasSetValue CUISlider where
+    setValue c i = c_uiSliderSetValue c (fromIntegral i)
+
 foreign import capi "ui.h uiSliderOnChanged"
     c_uiSliderOnChanged :: CUISlider -> FunPtr (CUISlider -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
@@ -771,8 +808,14 @@ data RawProgressBar
 foreign import capi "ui.h uiProgressBarValue"
     c_uiProgressBarValue :: CUIProgressBar -> IO CInt
 
-foreign import capi "ui.h uiProgressBarSetValue"
+instance HasGetValue CUIProgressBar where
+    getValue c = fromIntegral <$> c_uiProgressBarValue c
+
+foreign import ccall safe "uiProgressBarSetValue"
     c_uiProgressBarSetValue :: CUIProgressBar -> CInt -> IO ()
+
+instance HasSetValue CUIProgressBar where
+    setValue c i = c_uiProgressBarSetValue c (fromIntegral i)
 
 foreign import capi "ui.h uiNewProgressBar"
     c_uiNewProgressBar :: IO CUIProgressBar
@@ -787,6 +830,9 @@ foreign import capi "ui.h uiSpinboxValue"
 
 foreign import capi "ui.h uiSpinboxSetValue"
     c_uiSpinboxSetValue :: CUISpinbox -> CInt -> IO ()
+
+instance HasSetValue CUISpinbox where
+    setValue c i = c_uiSpinboxSetValue c (fromIntegral i)
 
 foreign import capi "ui.h uiSpinboxOnChanged"
     c_uiSpinboxOnChanged :: CUISpinbox -> FunPtr (CUISpinbox -> DataPtr -> IO ()) -> DataPtr -> IO ()
@@ -818,6 +864,8 @@ foreign import capi "ui.h uiMenuAppendAboutItem"
 
 foreign import capi "ui.h uiMenuAppendSeparator"
     c_uiMenuAppendSeparator :: CUIMenu -> IO ()
+
+uiNewMenu s = newCString s >>= c_uiNewMenu
 
 foreign import capi "ui.h uiNewMenu"
     c_uiNewMenu :: CString -> IO CUIMenu

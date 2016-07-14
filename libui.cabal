@@ -20,7 +20,7 @@ extra-tmp-files:
 library
   -- ld-options: -Wl,-rpath,'$ORIGIN'
   -- ghc-options: -optl-Wl,-rpath,'$ORIGIN'"
-  frameworks: Foundation CoreFoundation AppKit Cocoa
+  frameworks: Foundation CoreFoundation AppKit Cocoa WebKit
   if os(linux)
     extra-libraries: gtk-3 glib-2.0 gdk-3 pango-1.0 gobject-2.0
     include-dirs:

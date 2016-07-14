@@ -10,12 +10,15 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
 -- |
--- Provides a raw Haskell C FFI interface with libui
+-- Provides a raw Haskell C FFI interface with libui as well as type-classes
+-- and Haskell wrappers to use them
+--
+-- This module should be enough to match how most imperative languages will
+-- work with the foreign library, if you're ok with building your GUI
+-- imperatively on the IO Monad, this should be fine
 --
 -- All functions and newtype pointer wrappers imported from the library are
 -- prefixed with @CUI...@ or @c_...@
---
--- Only the raw C API is available on this module
 module Graphics.LibUI.FFI
   where
 
@@ -26,8 +29,9 @@ import           Foreign.C
 -- * Basic API
 
 -- |
--- At the moment the FFI doesn't care about any of the types.
-type VoidPtr = Ptr ()
+-- The callback API passes around a void pointer, which is state that can be
+-- threaded to callbacks. This is not necessary in Haskell land and ignored.
+type DataPtr = Ptr ()
 
 boolToNum :: Num a => Bool -> a
 boolToNum False = 0
@@ -76,7 +80,7 @@ foreign import capi "ui.h uiInit"
 -- |
 -- Initialize the UI
 foreign import capi "ui.h uiOnShouldQuit"
-    c_uiOnShouldQuit :: FunPtr (VoidPtr -> IO CInt) -> VoidPtr -> IO ()
+    c_uiOnShouldQuit :: FunPtr (DataPtr -> IO CInt) -> DataPtr -> IO ()
 
 -- ** CUIControl
 -- libui is decently object-oriented though written in C
@@ -86,7 +90,7 @@ foreign import capi "ui.h uiOnShouldQuit"
 
 -- |
 -- 'CUIControl' is a `uiControl`
-newtype CUIControl = CUIControl VoidPtr
+newtype CUIControl = CUIControl (Ptr ())
 
 -- |
 -- Something that we can convert to a 'CUIControl' and use it's functions
@@ -158,24 +162,24 @@ uiSetParent control parent =
 
 -- |
 -- Get if a control is on the top level ('c_uiControlTopLevel')
-uiControlTopLevel :: ToCUIControl a => a -> IO Bool
-uiControlTopLevel c = numToBool <$> c_uiControlToplevel (toCUIControl c)
+uiGetTopLevel :: ToCUIControl a => a -> IO Bool
+uiGetTopLevel c = numToBool <$> c_uiControlToplevel (toCUIControl c)
 
 -- |
 -- Get if a control is visible ('c_uiControlVisible')
-uiControlVisible :: ToCUIControl a => a -> IO Bool
-uiControlVisible c = numToBool <$> c_uiControlVisible (toCUIControl c)
+uiGetVisible :: ToCUIControl a => a -> IO Bool
+uiGetVisible c = numToBool <$> c_uiControlVisible (toCUIControl c)
 
 -- |
 -- Get if a control is enabled ('c_uiControlEnabled')
-uiControlGetEnabled :: ToCUIControl a => a -> IO Bool
-uiControlGetEnabled c = numToBool <$> c_uiControlEnabled (toCUIControl c)
+uiGetEnabled :: ToCUIControl a => a -> IO Bool
+uiGetEnabled c = numToBool <$> c_uiControlEnabled (toCUIControl c)
 
 -- |
 -- Set if a control is enabled ('c_uiControlEnable' & 'c_uiControlDisable')
-uiControlSetEnabled :: ToCUIControl a => a -> Bool -> IO ()
-uiControlSetEnabled c True = c_uiControlEnable (toCUIControl c)
-uiControlSetEnabled c False = c_uiControlDisable (toCUIControl c)
+uiSetEnabled :: ToCUIControl a => a -> Bool -> IO ()
+uiSetEnabled c True = c_uiControlEnable (toCUIControl c)
+uiSetEnabled c False = c_uiControlDisable (toCUIControl c)
 
 foreign import capi "ui.h uiControlDestroy"
     c_uiControlDestroy :: CUIControl -> IO ()
@@ -212,17 +216,17 @@ foreign import capi "ui.h uiControlDisable"
 -- |
 -- Wrap a success callback on a foreign pointer
 foreign import ccall "wrapper"
-    c_wrap1I :: (VoidPtr -> IO CInt) -> IO (FunPtr (VoidPtr -> IO CInt))
+    c_wrap1I :: (DataPtr -> IO CInt) -> IO (FunPtr (DataPtr -> IO CInt))
 
 -- |
 -- Wrap a 1 argument event listener on a foreign pointer
 foreign import ccall "wrapper"
-    c_wrap1 :: (VoidPtr -> IO ()) -> IO (FunPtr (VoidPtr -> IO ()))
+    c_wrap1 :: (DataPtr -> IO ()) -> IO (FunPtr (DataPtr -> IO ()))
 
 -- |
 -- Wrap a 2 argument event listener on a foreign pointer
 foreign import ccall "wrapper"
-    c_wrap2 :: (VoidPtr -> VoidPtr -> IO ()) -> IO (FunPtr (VoidPtr -> VoidPtr -> IO ()))
+    c_wrap2 :: (DataPtr -> DataPtr -> IO ()) -> IO (FunPtr (DataPtr -> DataPtr -> IO ()))
 
 -- * UI Controls
 
@@ -322,7 +326,7 @@ foreign import capi "ui.h uiWindowCenter"
 
 -- | Add a callback to the window's position
 foreign import capi "ui.h uiWindowOnPositionChanged"
-    c_uiWindowOnPositionChanged :: CUIWindow -> FunPtr (CUIWindow -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
+    c_uiWindowOnPositionChanged :: CUIWindow -> FunPtr (CUIWindow -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
 -- | Get the size of the window's content
 foreign import capi "ui.h uiWindowContentSize"
@@ -342,11 +346,11 @@ foreign import capi "ui.h uiWindowSetFullscreen"
 
 -- | Add a callback to when content changes
 foreign import capi "ui.h uiWindowOnContentSizeChanged"
-    c_uiWindowOnContentSizeChanged :: CUIWindow -> FunPtr (CUIWindow -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
+    c_uiWindowOnContentSizeChanged :: CUIWindow -> FunPtr (CUIWindow -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
 -- | Add a callback to when the window is closed
 foreign import capi "ui.h uiWindowOnClosing"
-    c_uiWindowOnClosing :: CUIWindow -> FunPtr (CUIWindow -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
+    c_uiWindowOnClosing :: CUIWindow -> FunPtr (CUIWindow -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
 -- | Is the window borderless?
 foreign import capi "ui.h uiWindowBorderless"
@@ -386,47 +390,6 @@ foreign import capi "ui.h uiNewWindow"
       -- ^ Whether the window has a menubar
       -> IO CUIWindow
 
--- ** Buttons
--- *** CUIButton <- uiButton
-
--- |
--- A C button
---
--- @
--- -- | An action that creates a button
--- myButton :: IO 'CUIButton'
--- myButton = do
---     btn <- 'c_uiNewButton' =<< 'newCString' "Hello world"
---     -- Get hold of the button pointer
---     btn ``onClick`` print "Clicked!"
---     -- Add a 'onClick' handler to the control
---     return btn
---     -- Return the pointer for later use
--- @
-newtype CUIButton = CUIButton (Ptr RawButton)
-  deriving(Show, ToCUIControl)
-data RawButton
-
-foreign import capi "ui.h uiButtonOnClicked"
-    c_uiButtonOnClicked :: CUIButton -> FunPtr (CUIButton -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
-
-instance HasOnClicked CUIButton where
-    onClick btn action = do
-        f <- castFunPtr <$> c_wrap2 (\_ _ -> action)
-        c_uiButtonOnClicked btn f nullPtr
-
-foreign import capi "ui.h uiButtonSetText"
-    c_uiButtonSetText :: CUIButton -> CString -> IO ()
-
-instance HasSetText CUIButton where
-    setText btn s = withCString s (c_uiButtonSetText btn)
-
-foreign import capi "ui.h uiButtonText"
-    c_uiButtonText :: CUIButton -> CString
-
-foreign import capi "ui.h uiNewButton"
-    c_uiNewButton :: CString -> IO CUIButton
-
 -- ** Layout
 -- *** CUIBox <- uiBox
 newtype CUIBox = CUIBox (Ptr RawBox)
@@ -458,87 +421,7 @@ foreign import capi "ui.h uiNewHorizontalBox"
 foreign import capi "ui.h uiNewVerticalBox"
     c_uiNewVerticalBox :: IO CUIBox
 
--- ** Input Types
--- *** CUICheckbox <- uiCheckbox
-newtype CUICheckbox = CUICheckbox (Ptr RawCheckbox)
-  deriving(Show, ToCUIControl)
-data RawCheckbox
-
-foreign import capi "ui.h uiCheckboxText"
-    c_uiCheckboxText :: CUICheckbox -> IO CString
-
-foreign import capi "ui.h uiCheckboxSetText"
-    c_uiCheckboxSetText :: CUICheckbox -> CString -> IO ()
-
-instance HasSetText CUICheckbox where
-    setText btn s = withCString s (c_uiCheckboxSetText btn)
-
-foreign import capi "ui.h uiCheckboxOnToggled"
-    c_uiCheckboxOnToggled :: CUICheckbox -> FunPtr (CUICheckbox -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
-
-foreign import capi "ui.h uiCheckboxChecked"
-    c_uiCheckboxChecked :: CUICheckbox -> IO CInt
-
-foreign import capi "ui.h uiCheckboxSetChecked"
-    c_uiCheckboxSetChecked :: CUICheckbox -> CInt -> IO ()
-
-instance HasSetChecked CUICheckbox where
-    setChecked c False = c_uiCheckboxSetChecked c 0
-    setChecked c True = c_uiCheckboxSetChecked c 1
-
-foreign import capi "ui.h uiNewCheckbox"
-    c_uiNewCheckbox :: CString -> IO CUICheckbox
-
--- *** CUIEntry <- uiEntry
-newtype CUIEntry = CUIEntry (Ptr RawEntry)
-  deriving(Show, ToCUIControl)
-data RawEntry
-
-foreign import capi "ui.h uiEntryText"
-    c_uiEntryText :: CUIEntry -> IO CString
-
-foreign import capi "ui.h uiEntrySetText"
-    c_uiEntrySetText :: CUIEntry -> CString -> IO ()
-
-instance HasSetText CUIEntry where
-    setText c s = withCString s (c_uiEntrySetText c)
-
-foreign import capi "ui.h uiEntryOnChanged"
-    c_uiEntryOnChanged :: CUIEntry -> FunPtr (CUIEntry -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
-
-foreign import capi "ui.h uiEntryReadOnly"
-    c_uiEntryReadOnly :: CUIEntry -> IO CInt
-
-foreign import capi "ui.h uiEntrySetReadOnly"
-    c_uiEntrySetReadOnly :: CUIEntry -> CInt -> IO ()
-
-foreign import capi "ui.h uiNewEntry"
-    c_uiNewEntry :: IO CUIEntry
-
-foreign import capi "ui.h uiNewPasswordEntry"
-    c_uiNewPasswordEntry :: IO CUIEntry
-
-foreign import capi "ui.h uiNewSearchEntry"
-    c_uiNewSearchEntry :: IO CUIEntry
-
--- ** CUILabel <- uiLabel
-newtype CUILabel = CUILabel (Ptr RawLabel)
-  deriving(Show, ToCUIControl)
-data RawLabel
-
-foreign import capi "ui.h uiLabelText"
-    c_uiLabelText :: CUILabel -> IO CString
-
-foreign import capi "ui.h uiLabelSetText"
-    c_uiLabelSetText :: CUILabel -> CString -> IO ()
-
-instance HasSetText CUILabel where
-    setText c s = withCString s (c_uiLabelSetText c)
-
-foreign import capi "ui.h uiNewLabel"
-    c_uiNewLabel :: CString -> IO CUILabel
-
--- ** CUITab <- uiTab
+-- *** CUITab <- uiTab
 newtype CUITab = CUITab (Ptr RawTab)
   deriving(Show, ToCUIControl)
 data RawTab
@@ -571,7 +454,7 @@ foreign import capi "ui.h uiTabSetMargined"
 foreign import capi "ui.h uiNewTab"
     c_uiNewTab :: IO CUITab
 
--- ** CUIGroup <- uiGroup
+-- *** CUIGroup <- uiGroup
 newtype CUIGroup = CUIGroup (Ptr RawGroup)
   deriving(Show, ToCUIControl)
 data RawGroup
@@ -599,24 +482,122 @@ foreign import capi "ui.h uiGroupSetMargined"
 foreign import capi "ui.h uiNewGroup"
     c_uiNewGroup :: CString -> IO CUIGroup
 
--- ** CUISpinbox <- uiSpinbox
-newtype CUISpinbox = CUISpinbox (Ptr RawSpinbox)
+-- *** CUISeparator <- uiSeparator
+newtype CUISeparator = CUISeparator (Ptr RawSeparator)
   deriving(Show, ToCUIControl)
-data RawSpinbox
+data RawSeparator
 
-foreign import capi "ui.h uiSpinboxValue"
-    c_uiSpinboxValue :: CUISpinbox -> IO CInt
+foreign import capi "ui.h uiNewHorizontalSeparator"
+    c_uiNewHorizontalSeparator :: IO CUISeparator
 
-foreign import capi "ui.h uiSpinboxSetValue"
-    c_uiSpinboxSetValue :: CUISpinbox -> CInt -> IO ()
+foreign import capi "ui.h uiNewVerticalSeparator"
+    c_uiNewVerticalSeparator :: IO CUISeparator
 
-foreign import capi "ui.h uiSpinboxOnChanged"
-    c_uiSpinboxOnChanged :: CUISpinbox -> FunPtr (CUISpinbox -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
+-- ** Input Types
+-- *** Buttons
+-- **** CUIButton <- uiButton
 
-foreign import capi "ui.h uiNewSpinbox"
-    c_uiNewSpinbox :: CInt -> CInt -> IO CUISpinbox
+-- |
+-- A C button
+--
+-- @
+-- -- | An action that creates a button
+-- myButton :: IO 'CUIButton'
+-- myButton = do
+--     btn <- 'c_uiNewButton' =<< 'newCString' "Hello world"
+--     -- Get hold of the button pointer
+--     btn ``onClick`` print "Clicked!"
+--     -- Add a 'onClick' handler to the control
+--     return btn
+--     -- Return the pointer for later use
+-- @
+newtype CUIButton = CUIButton (Ptr RawButton)
+  deriving(Show, ToCUIControl)
+data RawButton
 
--- ** CUISlider <- uiSlider
+foreign import capi "ui.h uiButtonOnClicked"
+    c_uiButtonOnClicked :: CUIButton -> FunPtr (CUIButton -> DataPtr -> IO ()) -> DataPtr -> IO ()
+
+instance HasOnClicked CUIButton where
+    onClick btn action = do
+        f <- castFunPtr <$> c_wrap2 (\_ _ -> action)
+        c_uiButtonOnClicked btn f nullPtr
+
+foreign import capi "ui.h uiButtonSetText"
+    c_uiButtonSetText :: CUIButton -> CString -> IO ()
+
+instance HasSetText CUIButton where
+    setText btn s = withCString s (c_uiButtonSetText btn)
+
+foreign import capi "ui.h uiButtonText"
+    c_uiButtonText :: CUIButton -> CString
+
+foreign import capi "ui.h uiNewButton"
+    c_uiNewButton :: CString -> IO CUIButton
+
+-- *** CUICheckbox <- uiCheckbox
+newtype CUICheckbox = CUICheckbox (Ptr RawCheckbox)
+  deriving(Show, ToCUIControl)
+data RawCheckbox
+
+foreign import capi "ui.h uiCheckboxText"
+    c_uiCheckboxText :: CUICheckbox -> IO CString
+
+foreign import capi "ui.h uiCheckboxSetText"
+    c_uiCheckboxSetText :: CUICheckbox -> CString -> IO ()
+
+instance HasSetText CUICheckbox where
+    setText btn s = withCString s (c_uiCheckboxSetText btn)
+
+foreign import capi "ui.h uiCheckboxOnToggled"
+    c_uiCheckboxOnToggled :: CUICheckbox -> FunPtr (CUICheckbox -> DataPtr -> IO ()) -> DataPtr -> IO ()
+
+foreign import capi "ui.h uiCheckboxChecked"
+    c_uiCheckboxChecked :: CUICheckbox -> IO CInt
+
+foreign import capi "ui.h uiCheckboxSetChecked"
+    c_uiCheckboxSetChecked :: CUICheckbox -> CInt -> IO ()
+
+instance HasSetChecked CUICheckbox where
+    setChecked c False = c_uiCheckboxSetChecked c 0
+    setChecked c True = c_uiCheckboxSetChecked c 1
+
+foreign import capi "ui.h uiNewCheckbox"
+    c_uiNewCheckbox :: CString -> IO CUICheckbox
+
+-- *** CUIEntry <- uiEntry
+newtype CUIEntry = CUIEntry (Ptr RawEntry)
+  deriving(Show, ToCUIControl)
+data RawEntry
+
+foreign import capi "ui.h uiEntryText"
+    c_uiEntryText :: CUIEntry -> IO CString
+
+foreign import capi "ui.h uiEntrySetText"
+    c_uiEntrySetText :: CUIEntry -> CString -> IO ()
+
+instance HasSetText CUIEntry where
+    setText c s = withCString s (c_uiEntrySetText c)
+
+foreign import capi "ui.h uiEntryOnChanged"
+    c_uiEntryOnChanged :: CUIEntry -> FunPtr (CUIEntry -> DataPtr -> IO ()) -> DataPtr -> IO ()
+
+foreign import capi "ui.h uiEntryReadOnly"
+    c_uiEntryReadOnly :: CUIEntry -> IO CInt
+
+foreign import capi "ui.h uiEntrySetReadOnly"
+    c_uiEntrySetReadOnly :: CUIEntry -> CInt -> IO ()
+
+foreign import capi "ui.h uiNewEntry"
+    c_uiNewEntry :: IO CUIEntry
+
+foreign import capi "ui.h uiNewPasswordEntry"
+    c_uiNewPasswordEntry :: IO CUIEntry
+
+foreign import capi "ui.h uiNewSearchEntry"
+    c_uiNewSearchEntry :: IO CUIEntry
+
+-- *** CUISlider <- uiSlider
 newtype CUISlider = CUISlider (Ptr RawSlider)
   deriving(Show, ToCUIControl)
 data RawSlider
@@ -628,37 +609,12 @@ foreign import capi "ui.h uiSliderSetValue"
     c_uiSliderSetValue :: CUISlider -> CInt -> IO ()
 
 foreign import capi "ui.h uiSliderOnChanged"
-    c_uiSliderOnChanged :: CUISlider -> FunPtr (CUISlider -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
+    c_uiSliderOnChanged :: CUISlider -> FunPtr (CUISlider -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
 foreign import capi "ui.h uiNewSlider"
     c_uiNewSlider :: CInt -> CInt -> IO CUISlider
 
--- ** CUIProgressBar <- uiProgressBar
-newtype CUIProgressBar = CUIProgressBar (Ptr RawProgressBar)
-  deriving(Show, ToCUIControl)
-data RawProgressBar
-
-foreign import capi "ui.h uiProgressBarValue"
-    c_uiProgressBarValue :: CUIProgressBar -> IO CInt
-
-foreign import capi "ui.h uiProgressBarSetValue"
-    c_uiProgressBarSetValue :: CUIProgressBar -> CInt -> IO ()
-
-foreign import capi "ui.h uiNewProgressBar"
-    c_uiNewProgressBar :: IO CUIProgressBar
-
--- ** CUISeparator <- uiSeparator
-newtype CUISeparator = CUISeparator (Ptr RawSeparator)
-  deriving(Show, ToCUIControl)
-data RawSeparator
-
-foreign import capi "ui.h uiNewHorizontalSeparator"
-    c_uiNewHorizontalSeparator :: IO CUISeparator
-
-foreign import capi "ui.h uiNewVerticalSeparator"
-    c_uiNewVerticalSeparator :: IO CUISeparator
-
--- ** CUICombobox <- uiCombobox
+-- *** CUICombobox <- uiCombobox
 newtype CUICombobox = CUICombobox (Ptr RawCombobox)
   deriving(Show, ToCUIControl)
 data RawCombobox
@@ -673,12 +629,12 @@ foreign import capi "ui.h uiComboboxSetSelected"
     c_uiComboboxSetSelected :: CUICombobox -> CInt -> IO ()
 
 foreign import capi "ui.h uiComboboxOnSelected"
-    c_uiComboboxOnSelected :: CUICombobox -> FunPtr (CUICombobox -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
+    c_uiComboboxOnSelected :: CUICombobox -> FunPtr (CUICombobox -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
 foreign import capi "ui.h uiNewCombobox"
     c_uiNewCombobox :: IO CUICombobox
 
--- ** CUIEditableCombobox <- uiEditableCombobox
+-- *** CUIEditableCombobox <- uiEditableCombobox
 newtype CUIEditableCombobox = CUIEditableCombobox (Ptr RawEditableCombobox)
   deriving(Show, ToCUIControl)
 data RawEditableCombobox
@@ -696,12 +652,12 @@ instance HasSetText CUIEditableCombobox where
     setText c s = withCString s (c_uiEditableComboboxSetText c)
 
 foreign import capi "ui.h uiEditableComboboxOnChanged"
-    c_uiEditableComboboxOnChanged :: CUIEditableCombobox -> FunPtr (CUIEditableCombobox -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
+    c_uiEditableComboboxOnChanged :: CUIEditableCombobox -> FunPtr (CUIEditableCombobox -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
 foreign import capi "ui.h uiNewEditableCombobox"
     c_uiNewEditableCombobox :: IO CUIEditableCombobox
 
--- ** CUIRadioButtons <- uiRadioButtons
+-- *** CUIRadioButtons <- uiRadioButtons
 newtype CUIRadioButtons = CUIRadioButtons (Ptr RawRadioButtons)
   deriving(Show, ToCUIControl)
 data RawRadioButtons
@@ -716,14 +672,15 @@ foreign import capi "ui.h uiRadioButtonsSetSelected"
     c_uiRadioButtonsSetSelected :: CUIRadioButtons -> CInt -> IO ()
 
 foreign import capi "ui.h uiRadioButtonsOnSelected"
-    c_uiRadioButtonsOnSelected :: CUIRadioButtons -> FunPtr (CUIRadioButtons -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
+    c_uiRadioButtonsOnSelected :: CUIRadioButtons -> FunPtr (CUIRadioButtons -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
 foreign import capi "ui.h uiNewRadioButtons"
     c_uiNewRadioButtons :: IO CUIRadioButtons
 
--- ** CUIForm <- uiForm
+-- *** CUIForm <- uiForm
 newtype CUIForm = CUIForm (Ptr RawForm)
   deriving(Show, ToCUIControl)
+
 data RawForm
 
 foreign import capi "ui.h uiFormAppend"
@@ -773,7 +730,7 @@ foreign import capi "ui.h uiMultilineEntryAppend"
     c_uiMultilineEntryAppend :: CUIMultilineEntry -> CString -> IO ()
 
 foreign import capi "ui.h uiMultilineEntryOnChanged"
-    c_uiMultilineEntryOnChanged :: CUIMultilineEntry -> FunPtr (CUIMultilineEntry -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
+    c_uiMultilineEntryOnChanged :: CUIMultilineEntry -> FunPtr (CUIMultilineEntry -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
 foreign import capi "ui.h uiMultilineEntryReadOnly"
     c_uiMultilineEntryReadOnly :: CUIMultilineEntry -> IO CInt
@@ -787,38 +744,60 @@ foreign import capi "ui.h uiNewMultilineEntry"
 foreign import capi "ui.h uiNewNonWrappingMultilineEntry"
     c_uiNewNonWrappingMultilineEntry :: IO CUIMultilineEntry
 
--- ** CUIMenuItem <- uiMenuItem
-newtype CUIMenuItem = CUIMenuItem (Ptr RawMenuItem)
+-- ** Progress Indicators
+-- *** CUIProgressBar <- uiProgressBar
+newtype CUIProgressBar = CUIProgressBar (Ptr RawProgressBar)
   deriving(Show, ToCUIControl)
-data RawMenuItem
+data RawProgressBar
 
-foreign import capi "ui.h uiMenuItemEnable"
-    c_uiMenuItemEnable :: CUIMenuItem -> IO ()
+foreign import capi "ui.h uiProgressBarValue"
+    c_uiProgressBarValue :: CUIProgressBar -> IO CInt
 
-foreign import capi "ui.h uiMenuItemDisable"
-    c_uiMenuItemDisable :: CUIMenuItem -> IO ()
+foreign import capi "ui.h uiProgressBarSetValue"
+    c_uiProgressBarSetValue :: CUIProgressBar -> CInt -> IO ()
 
-foreign import capi "ui.h uiMenuItemOnClicked"
-    c_uiMenuItemOnClicked :: CUIMenuItem -> FunPtr (CUIMenuItem -> VoidPtr -> IO ()) -> VoidPtr -> IO ()
+foreign import capi "ui.h uiNewProgressBar"
+    c_uiNewProgressBar :: IO CUIProgressBar
 
-instance HasOnClicked CUIMenuItem where
-    onClick itm action = do
-        f <- castFunPtr <$> c_wrap2 (\_ _ -> action)
-        c_uiMenuItemOnClicked itm f nullPtr
+-- *** CUISpinbox <- uiSpinbox
+newtype CUISpinbox = CUISpinbox (Ptr RawSpinbox)
+  deriving(Show, ToCUIControl)
+data RawSpinbox
 
-foreign import capi "ui.h uiMenuItemChecked"
-    c_uiMenuItemChecked :: CUIMenuItem -> IO CInt
+foreign import capi "ui.h uiSpinboxValue"
+    c_uiSpinboxValue :: CUISpinbox -> IO CInt
 
-foreign import capi "ui.h uiMenuItemSetChecked"
-    c_uiMenuItemSetChecked :: CUIMenuItem -> CInt -> IO ()
+foreign import capi "ui.h uiSpinboxSetValue"
+    c_uiSpinboxSetValue :: CUISpinbox -> CInt -> IO ()
 
-instance HasSetChecked CUIMenuItem where
-    setChecked c False = c_uiMenuItemSetChecked c 0
-    setChecked c True = c_uiMenuItemSetChecked c 1
+foreign import capi "ui.h uiSpinboxOnChanged"
+    c_uiSpinboxOnChanged :: CUISpinbox -> FunPtr (CUISpinbox -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
+foreign import capi "ui.h uiNewSpinbox"
+    c_uiNewSpinbox :: CInt -> CInt -> IO CUISpinbox
+
+-- ** CUILabel <- uiLabel
+newtype CUILabel = CUILabel (Ptr RawLabel)
+  deriving(Show, ToCUIControl)
+data RawLabel
+
+foreign import capi "ui.h uiLabelText"
+    c_uiLabelText :: CUILabel -> IO CString
+
+foreign import capi "ui.h uiLabelSetText"
+    c_uiLabelSetText :: CUILabel -> CString -> IO ()
+
+instance HasSetText CUILabel where
+    setText c s = withCString s (c_uiLabelSetText c)
+
+foreign import capi "ui.h uiNewLabel"
+    c_uiNewLabel :: CString -> IO CUILabel
+
+-- * The Menubar
 -- ** CUIMenu <- uiMenu
+
 newtype CUIMenu = CUIMenu (Ptr RawMenu)
-  deriving(Show, ToCUIControl)
+  deriving(ToCUIControl, Show)
 data RawMenu
 
 foreign import capi "ui.h uiMenuAppendItem"
@@ -842,7 +821,36 @@ foreign import capi "ui.h uiMenuAppendSeparator"
 foreign import capi "ui.h uiNewMenu"
     c_uiNewMenu :: CString -> IO CUIMenu
 
--- * UI alerts
+-- ** CUIMenuItem <- uiMenuItem
+newtype CUIMenuItem = CUIMenuItem (Ptr RawMenuItem)
+  deriving(Show)
+data RawMenuItem
+
+foreign import capi "ui.h uiMenuItemEnable"
+    c_uiMenuItemEnable :: CUIMenuItem -> IO ()
+
+foreign import capi "ui.h uiMenuItemDisable"
+    c_uiMenuItemDisable :: CUIMenuItem -> IO ()
+
+foreign import capi "ui.h uiMenuItemOnClicked"
+    c_uiMenuItemOnClicked :: CUIMenuItem -> FunPtr (CUIMenuItem -> DataPtr -> IO ()) -> DataPtr -> IO ()
+
+instance HasOnClicked CUIMenuItem where
+    onClick itm action = do
+        f <- castFunPtr <$> c_wrap2 (\_ _ -> action)
+        c_uiMenuItemOnClicked itm f nullPtr
+
+foreign import capi "ui.h uiMenuItemChecked"
+    c_uiMenuItemChecked :: CUIMenuItem -> IO CInt
+
+foreign import capi "ui.h uiMenuItemSetChecked"
+    c_uiMenuItemSetChecked :: CUIMenuItem -> CInt -> IO ()
+
+instance HasSetChecked CUIMenuItem where
+    setChecked c False = c_uiMenuItemSetChecked c 0
+    setChecked c True = c_uiMenuItemSetChecked c 1
+
+-- * UI Alerts and Dialogs
 foreign import capi "ui.h uiOpenFile"
     c_uiOpenFile :: CUIWindow -> IO CString
 

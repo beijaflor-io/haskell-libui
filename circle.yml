@@ -1,6 +1,13 @@
+machine:
+  services:
+    - docker
+
 dependencies:
   cache_directories:
     - "~/.stack"
+    - ".stack"
+    # - "cmake-3.2.2"
+    # - "vendor/libui/build"
   pre:
     - git submodule update --init
     - sudo apt-get update
@@ -9,12 +16,18 @@ dependencies:
     - echo 'deb http://download.fpcomplete.com/ubuntu/precise stable main'|sudo tee /etc/apt/sources.list.d/fpco.list
     - sudo apt-get update && sudo apt-get install stack -y
     - sudo apt-get install build-essential
-    - wget http://www.cmake.org/files/v3.2/cmake-3.2.2.tar.gz
-    - tar xf cmake-3.2.2.tar.gz
-    - cd cmake-3.2.2 && ./configure && make && sudo make install
+
+  override:
+    # - wget http://www.cmake.org/files/v3.2/cmake-3.2.2.tar.gz
+    # - tar xf cmake-3.2.2.tar.gz
+    # - cd cmake-3.2.2 && ./bootstrap && make
+    # - cd vendor/libui && mkdir build && cd build && ../../../cmake-3.2.2/bin/cmake .. && make
+    - stack build --only-dependencies --install-ghc --test
 
 test:
+  pre: []
   override:
-    - cd vendor/libui && mkdir build && cd build && cmake .. && make
     - make
     - stack test
+    - cp -r `stack path --dist-dir` $CIRCLE_ARTIFACTS/
+    # - docker build -f ./build.dockerfile .

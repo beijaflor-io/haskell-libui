@@ -1,4 +1,6 @@
 # haskell-libui
+- - -
+
 Haskell bindings to the [`libui`](https://github.com/andlabs/libui) C library.
 
 - [x] Raw FFI available in `Graphics.LibUI.FFI`
@@ -7,3 +9,7 @@ Haskell bindings to the [`libui`](https://github.com/andlabs/libui) C library.
 - [ ] Haskell callback based API in `Graphics.LibUI.Types`
   * [x] Data-wrappers for `uiControl` type
   * [ ] Callback based API
+
+- - -
+
+Tested on OSX and Ubuntu 14.04. A Vagrantfile is available.

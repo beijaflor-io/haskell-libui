@@ -22,9 +22,11 @@
 module Graphics.LibUI.FFI
   where
 
-import           Control.Monad ((>=>))
+import           Control.Concurrent
+import           Control.Monad (when, (>=>))
 import           Foreign       hiding (void)
 import           Foreign.C
+import           System.IO.Unsafe
 
 -- * Basic API
 
@@ -48,10 +50,14 @@ numToBool _ = True
 foreign import capi safe "ui.h uiMain"
     c_uiMain :: IO ()
 
+uiMain = setHasMain True >> c_uiMain
+
 -- |
 -- Initialize main loop
 foreign import capi safe "ui.h uiMainSteps"
     c_uiMainSteps :: IO ()
+
+uiMainSteps = setHasMain True >> c_uiMainSteps
 
 -- |
 -- Step through the UI loop
@@ -66,6 +72,8 @@ foreign import capi safe "ui.h uiMainStep"
 -- Destroy the UI
 foreign import capi "ui.h uiQuit"
     c_uiQuit :: IO ()
+
+uiQuit = setHasMain False
 
 -- |
 -- Uninitialize the UI options
@@ -82,8 +90,18 @@ uiInit = alloca $ \ptr -> do
 foreign import capi "ui.h uiInit"
     c_uiInit :: Ptr CSize -> IO ()
 
-foreign import capi "ui.h uiQueueMain"
+foreign import ccall interruptible "uiQueueMain"
     c_uiQueueMain :: FunPtr (DataPtr -> IO ()) -> DataPtr -> IO ()
+
+hasMainM :: MVar Bool
+hasMainM = unsafePerformIO (newMVar False)
+{-# NOINLINE hasMainM #-}
+
+getHasMain :: IO Bool
+getHasMain = readMVar hasMainM
+
+setHasMain :: Bool -> IO ()
+setHasMain m = modifyMVar_ hasMainM (const (return m))
 
 -- |
 -- Actions not run on the main thread (that aren't just callbacks), need to be
@@ -92,8 +110,10 @@ foreign import capi "ui.h uiQueueMain"
 -- It calls 'c_uiQueueMain' under the hood
 uiQueueMain :: IO () -> IO ()
 uiQueueMain a = do
-    a' <- c_wrap1 (const a)
-    c_uiQueueMain a' nullPtr
+    m <- getHasMain
+    when m $ do
+        a' <- c_wrap1 (const a)
+        c_uiQueueMain a' nullPtr
 
 -- |
 -- Initialize the UI
@@ -167,6 +187,9 @@ class HasAppendChild s where
 
 class HasOnClosing w where
     onClosing :: w -> IO () -> IO ()
+
+class HasSetMargined w where
+    setMargined :: w -> Bool -> IO ()
 
 -- |
 -- Displays a control ('c_uiControlShow')
@@ -416,6 +439,9 @@ foreign import capi "ui.h uiWindowMargined"
 foreign import capi "ui.h uiWindowSetMargined"
     c_uiWindowSetMargined :: CUIWindow -> CInt -> IO ()
 
+instance HasSetMargined CUIWindow where
+    setMargined w m = c_uiWindowSetMargined w (boolToNum m)
+
 -- | Create a new window
 foreign import capi "ui.h uiNewWindow"
     c_uiNewWindow
@@ -483,14 +509,15 @@ foreign import capi "ui.h uiNewHorizontalBox"
 foreign import capi "ui.h uiNewVerticalBox"
     c_uiNewVerticalBox :: IO CUIBox
 
--- *** CUITab <- uiTab
-newtype CUITab = CUITab (Ptr RawTab)
+-- *** CUITabs <- uiTab
+newtype CUITabs = CUITab (Ptr RawTab)
   deriving(Show, ToCUIControl)
+
 data RawTab
 
 foreign import capi "ui.h uiTabAppend"
     c_uiTabAppend
-      :: CUITab
+      :: CUITabs
       -- ^ The tab group pointer
       -> CString
       -- ^ The tab title
@@ -499,22 +526,22 @@ foreign import capi "ui.h uiTabAppend"
       -> IO ()
 
 foreign import capi "ui.h uiTabInsertAt"
-    c_uiTabInsertAt :: CUITab -> CString -> CInt -> CUIControl -> IO ()
+    c_uiTabInsertAt :: CUITabs -> CString -> CInt -> CUIControl -> IO ()
 
 foreign import capi "ui.h uiTabDelete"
-    c_uiTabDelete :: CUITab -> CInt -> IO ()
+    c_uiTabDelete :: CUITabs -> CInt -> IO ()
 
 foreign import capi "ui.h uiTabNumPages"
-    c_uiTabNumPages :: CUITab -> IO CInt
+    c_uiTabNumPages :: CUITabs -> IO CInt
 
 foreign import capi "ui.h uiTabMargined"
-    c_uiTabMargined :: CUITab -> CInt -> IO CInt
+    c_uiTabMargined :: CUITabs -> CInt -> IO CInt
 
 foreign import capi "ui.h uiTabSetMargined"
-    c_uiTabSetMargined :: CUITab -> CInt -> CInt -> IO ()
+    c_uiTabSetMargined :: CUITabs -> CInt -> CInt -> IO ()
 
 foreign import capi "ui.h uiNewTab"
-    c_uiNewTab :: IO CUITab
+    c_uiNewTab :: IO CUITabs
 
 -- *** CUIGroup <- uiGroup
 newtype CUIGroup = CUIGroup (Ptr RawGroup)

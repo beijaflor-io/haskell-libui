@@ -19,10 +19,12 @@ main = do
         exitSuccess
 
     wn <- uiNewWindow "Hello World" 680 400 True
+    wn `setMargined` True
+
     vb <- c_uiNewHorizontalBox
     vb `appendChild` pg
     wn `setChild` vb
-    wn `onClosing` c_uiQuit
+    wn `onClosing` uiQuit
 
     uiShow wn
-    c_uiMain
+    uiMain

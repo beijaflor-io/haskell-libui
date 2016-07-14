@@ -15,6 +15,6 @@ dependencies:
 
 test:
   override:
-    - cd vendor/libui && mkdir build && cmake .. && make
+    - cd vendor/libui && mkdir build && cd build && cmake .. && make
     - make
     - stack test

@@ -390,6 +390,24 @@ foreign import capi "ui.h uiNewWindow"
       -- ^ Whether the window has a menubar
       -> IO CUIWindow
 
+-- ** Labels
+-- *** CUILabel <- uiLabel
+newtype CUILabel = CUILabel (Ptr RawLabel)
+  deriving(Show, ToCUIControl)
+data RawLabel
+
+foreign import capi "ui.h uiLabelText"
+    c_uiLabelText :: CUILabel -> IO CString
+
+foreign import capi "ui.h uiLabelSetText"
+    c_uiLabelSetText :: CUILabel -> CString -> IO ()
+
+instance HasSetText CUILabel where
+    setText c s = withCString s (c_uiLabelSetText c)
+
+foreign import capi "ui.h uiNewLabel"
+    c_uiNewLabel :: CString -> IO CUILabel
+
 -- ** Layout
 -- *** CUIBox <- uiBox
 newtype CUIBox = CUIBox (Ptr RawBox)
@@ -712,7 +730,7 @@ foreign import capi "ui.h uiFormSetPadded"
 foreign import capi "ui.h uiNewForm"
     c_uiNewForm :: IO CUIForm
 
--- ** CUIMultilineEntry <- uiMultilineEntry
+-- *** CUIMultilineEntry <- uiMultilineEntry
 newtype CUIMultilineEntry = CUIMultilineEntry (Ptr RawMultilineEntry)
   deriving(Show, ToCUIControl)
 data RawMultilineEntry
@@ -775,23 +793,6 @@ foreign import capi "ui.h uiSpinboxOnChanged"
 
 foreign import capi "ui.h uiNewSpinbox"
     c_uiNewSpinbox :: CInt -> CInt -> IO CUISpinbox
-
--- ** CUILabel <- uiLabel
-newtype CUILabel = CUILabel (Ptr RawLabel)
-  deriving(Show, ToCUIControl)
-data RawLabel
-
-foreign import capi "ui.h uiLabelText"
-    c_uiLabelText :: CUILabel -> IO CString
-
-foreign import capi "ui.h uiLabelSetText"
-    c_uiLabelSetText :: CUILabel -> CString -> IO ()
-
-instance HasSetText CUILabel where
-    setText c s = withCString s (c_uiLabelSetText c)
-
-foreign import capi "ui.h uiNewLabel"
-    c_uiNewLabel :: CString -> IO CUILabel
 
 -- * The Menubar
 -- ** CUIMenu <- uiMenu

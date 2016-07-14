@@ -28,6 +28,4 @@ main = do
     -- c_uiMenuAppendQuitItem fmenu
 
     uiShow wn
-    c_uiMainSteps
-    forever $
-        c_uiMainStep 0
+    c_uiMain

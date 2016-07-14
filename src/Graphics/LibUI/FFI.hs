@@ -25,11 +25,13 @@ import           Foreign.C
 -- At the moment the FFI doesn't care about any of the types.
 type VoidPtr = Ptr ()
 
-boolToCInt False = 0
-boolToCInt True = 1
+boolToNum :: Num a => Bool -> a
+boolToNum False = 0
+boolToNum True = 1
 
-cintToBool 0 = False
-cintToBool _ = True
+numToBool :: (Num a, Eq a) => a -> Bool
+numToBool 0 = False
+numToBool _ = True
 
 -- |
 -- Start the main loop. Will block a thread, use 'runUILoop' instead.
@@ -82,6 +84,11 @@ foreign import capi "ui.h uiOnShouldQuit"
 -- 'CUIControl' is a `uiControl`
 newtype CUIControl = CUIControl VoidPtr
 
+-- |
+-- Something that we can convert to a 'CUIControl' and use it's functions
+--
+-- Default instances are generated for all imported pointer types, because
+-- they're all castable to 'CUIControl'
 class ToCUIControl a where
     toCUIControl :: a -> CUIControl
 
@@ -91,49 +98,82 @@ instance ToCUIControl CUIControl where
 instance ToCUIControl (Ptr a) where
     toCUIControl = CUIControl . castPtr
 
+-- |
+-- Something that we can convert to a 'CUIControl', but need IO
 class ToCUIControlIO a where
     toCUIControlIO :: a -> IO CUIControl
 
 instance ToCUIControl a => ToCUIControlIO a where
     toCUIControlIO = return . toCUIControl
 
+-- |
+-- Controls with `ui...SetText` functions
 class HasSetText s where
     setText :: s -> String -> IO ()
 
+-- |
+-- Controls with `ui...OnClicked` functions
 class HasOnClicked s where
     onClick :: s -> IO () -> IO ()
 
+-- |
+-- Controls with `ui...SetChecked` functions
 class HasSetChecked s where
     setChecked :: s -> Bool -> IO ()
 
+-- |
+-- Controls with `ui...SetChild` functions
+class HasSetChild s where
+    setChild :: ToCUIControlIO a => s -> a -> IO ()
+
+-- |
+-- Displays a control ('c_uiControlShow')
 uiShow :: ToCUIControl a => a -> IO ()
 uiShow = c_uiControlShow . toCUIControl
 
+-- |
+-- Hides a control ('c_uiControlHide')
 uiHide :: ToCUIControl a => a -> IO ()
 uiHide = c_uiControlHide . toCUIControl
 
+-- |
+-- Destroys a control ('c_uiControlDestroy')
 uiDestroy :: ToCUIControl a => a -> IO ()
 uiDestroy = c_uiControlDestroy . toCUIControl
 
+-- |
+-- Get a control's parent ('c_uiControlParent')
 uiParent :: ToCUIControl a => a -> IO CUIControl
 uiParent = c_uiControlParent . toCUIControl
 
+-- |
+-- Set a control's parent ('c_uiControlSetParent')
 uiSetParent :: (ToCUIControl a, ToCUIControl b) => a -> b -> IO ()
 uiSetParent control parent =
     c_uiControlSetParent (toCUIControl control) (toCUIControl parent)
 
+-- |
+-- Get if a control is on the top level ('c_uiControlTopLevel')
 uiControlTopLevel :: ToCUIControl a => a -> IO Bool
-uiControlTopLevel c = cintToBool <$> c_uiControlToplevel (toCUIControl c)
+uiControlTopLevel c = numToBool <$> c_uiControlToplevel (toCUIControl c)
 
+-- |
+-- Get if a control is visible ('c_uiControlVisible')
 uiControlVisible :: ToCUIControl a => a -> IO Bool
-uiControlVisible c = cintToBool <$> c_uiControlVisible (toCUIControl c)
+uiControlVisible c = numToBool <$> c_uiControlVisible (toCUIControl c)
 
+-- |
+-- Get if a control is enabled ('c_uiControlEnabled')
 uiControlEnabled :: ToCUIControl a => a -> IO Bool
-uiControlEnabled c = cintToBool <$> c_uiControlEnabled (toCUIControl c)
+uiControlEnabled c = numToBool <$> c_uiControlEnabled (toCUIControl c)
 
+-- |
+-- Set if a control is enabled ('c_uiControlEnable')
 uiControlEnable :: ToCUIControl a => a -> IO ()
 uiControlEnable c = c_uiControlEnable (toCUIControl c)
 
+-- |
+-- Set if a control is disabled ('c_uiControlDisable')
 uiControlDisable :: ToCUIControl a => a -> IO ()
 uiControlDisable c = c_uiControlDisable (toCUIControl c)
 
@@ -188,6 +228,22 @@ foreign import ccall "wrapper"
 
 -- ** Windows
 -- *** CUIWindow <- uiWindow
+
+-- |
+-- A C window
+--
+-- @
+-- -- | An action that creates a window with a child
+-- myWindow :: 'CUIControl' -> IO 'CUIWindow'
+-- myButton cui = do
+--     title <- 'newCString' "Hello world"
+--     win <- 'c_uiNewWindow' title 680 400 1
+--     -- Get hold of the window pointer
+--     win ``setChild`` cui
+--     -- Add the control as a child of the window
+--     return win
+--     -- Return the pointer for later use
+-- @
 newtype CUIWindow = CUIWindow (Ptr RawWindow)
   deriving(Show, ToCUIControl)
 data RawWindow
@@ -198,15 +254,31 @@ foreign import capi "ui.h uiWindowTitle"
 
 -- | Set the window title
 foreign import capi "ui.h uiWindowSetTitle"
-    c_uiWindowSetTitle :: CUIWindow -> CString -> IO ()
+    c_uiWindowSetTitle
+        :: CUIWindow
+        -> CString
+        -- ^ A new title
+        -> IO ()
 
 -- | Get the window position
 foreign import capi "ui.h uiWindowPosition"
-    c_uiWindowPosition :: CUIWindow -> Ptr CInt -> Ptr CInt -> IO ()
+    c_uiWindowPosition
+        :: CUIWindow
+        -> Ptr CInt
+        -- ^ Pointer to x coordinate
+        -> Ptr CInt
+        -- ^ Pointer to y coordinate
+        -> IO ()
 
 -- | Set the window position
 foreign import capi "ui.h uiWindowSetPosition"
-    c_uiWindowSetPosition :: CUIWindow -> CInt -> CInt -> IO ()
+    c_uiWindowSetPosition
+        :: CUIWindow
+        -> CInt
+        -- ^ The x coordinate
+        -> CInt
+        -- ^ The y coordinate
+        -> IO ()
 
 -- | Center the window
 foreign import capi "ui.h uiWindowCenter"
@@ -252,6 +324,11 @@ foreign import capi "ui.h uiWindowSetBorderless"
 foreign import capi "ui.h uiWindowSetChild"
     c_uiWindowSetChild :: CUIWindow -> CUIControl -> IO ()
 
+instance HasSetChild CUIWindow where
+    setChild w c = do
+        c' <- toCUIControlIO c
+        c_uiWindowSetChild w c'
+
 -- | Is the window margined
 foreign import capi "ui.h uiWindowMargined"
     c_uiWindowMargined :: CUIWindow -> IO CInt
@@ -262,10 +339,34 @@ foreign import capi "ui.h uiWindowSetMargined"
 
 -- | Create a new window
 foreign import capi "ui.h uiNewWindow"
-    c_uiNewWindow :: CString -> CInt -> CInt -> CInt -> IO CUIWindow
+    c_uiNewWindow
+      :: CString
+      -- ^ The window title
+      -> CInt
+      -- ^ The window width
+      -> CInt
+      -- ^ The window height
+      -> CInt
+      -- ^ Whether the window has a menubar
+      -> IO CUIWindow
 
 -- ** Buttons
 -- *** CUIButton <- uiButton
+
+-- |
+-- A C button
+--
+-- @
+-- -- | An action that creates a button
+-- myButton :: IO 'CUIButton'
+-- myButton = do
+--     btn <- 'c_uiNewButton' =<< 'newCString' "Hello world"
+--     -- Get hold of the button pointer
+--     btn ``onClick`` print "Clicked!"
+--     -- Add a 'onClick' handler to the control
+--     return btn
+--     -- Return the pointer for later use
+-- @
 newtype CUIButton = CUIButton (Ptr RawButton)
   deriving(Show, ToCUIControl)
 data RawButton
@@ -447,6 +548,11 @@ foreign import capi "ui.h uiGroupSetTitle"
 
 foreign import capi "ui.h uiGroupSetChild"
     c_uiGroupSetChild :: CUIGroup -> CUIControl -> IO ()
+
+instance HasSetChild CUIGroup where
+    setChild g c = do
+        c' <- toCUIControlIO c
+        c_uiGroupSetChild g c'
 
 foreign import capi "ui.h uiGroupMargined"
     c_uiGroupMargined :: CUIGroup -> IO CInt

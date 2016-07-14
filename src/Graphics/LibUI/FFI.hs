@@ -85,6 +85,11 @@ foreign import capi "ui.h uiInit"
 foreign import capi "ui.h uiQueueMain"
     c_uiQueueMain :: FunPtr (DataPtr -> IO ()) -> DataPtr -> IO ()
 
+-- |
+-- Actions not run on the main thread (that aren't just callbacks), need to be
+-- queued with @uiQueueMain@
+--
+-- It calls 'c_uiQueueMain' under the hood
 uiQueueMain :: IO () -> IO ()
 uiQueueMain a = do
     a' <- c_wrap1 (const a)

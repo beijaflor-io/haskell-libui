@@ -24,6 +24,7 @@ module Graphics.LibUI.FFI
 
 import           Control.Concurrent
 import           Control.Monad (when, (>=>))
+import           Control.Monad.Loops
 import           Foreign       hiding (void)
 import           Foreign.C
 import           System.IO.Unsafe
@@ -50,7 +51,10 @@ numToBool _ = True
 foreign import capi safe "ui.h uiMain"
     c_uiMain :: IO ()
 
-uiMain = setHasMain True >> c_uiMain
+uiMain = do
+    uiMainSteps
+    whileM getHasMain $ do
+        uiMainStep 0
 
 -- |
 -- Initialize main loop
@@ -58,6 +62,11 @@ foreign import capi safe "ui.h uiMainSteps"
     c_uiMainSteps :: IO ()
 
 uiMainSteps = setHasMain True >> c_uiMainSteps
+
+uiMainStep :: Int -> IO Int
+uiMainStep i = do
+    ne <- c_uiMainStep (fromIntegral i)
+    return (fromIntegral ne)
 
 -- |
 -- Step through the UI loop
@@ -73,7 +82,9 @@ foreign import capi safe "ui.h uiMainStep"
 foreign import capi "ui.h uiQuit"
     c_uiQuit :: IO ()
 
-uiQuit = setHasMain False
+uiQuit = do
+    setHasMain False
+    c_uiQuit
 
 -- |
 -- Uninitialize the UI options
@@ -112,11 +123,16 @@ uiQueueMain :: IO () -> IO ()
 uiQueueMain a = do
     m <- getHasMain
     when m $ do
-        a' <- c_wrap1 (const a)
+        a' <- c_wrap1 $ \_ -> do
+            r <- a
+            return ()
         c_uiQueueMain a' nullPtr
 
--- |
--- Initialize the UI
+uiOnShouldQuit :: IO Int -> IO ()
+uiOnShouldQuit a = do
+    f <- castFunPtr <$> c_wrap1I (\_ -> fromIntegral <$> a)
+    c_uiOnShouldQuit f nullPtr
+
 foreign import capi "ui.h uiOnShouldQuit"
     c_uiOnShouldQuit :: FunPtr (DataPtr -> IO CInt) -> DataPtr -> IO ()
 
@@ -187,6 +203,9 @@ class HasAppendChild s where
 
 class HasOnClosing w where
     onClosing :: w -> IO () -> IO ()
+
+class HasOnShouldQuit w where
+    onShouldQuit :: w -> IO () -> IO ()
 
 class HasSetMargined w where
     setMargined :: w -> Bool -> IO ()
@@ -470,6 +489,8 @@ foreign import capi "ui.h uiLabelSetText"
 instance HasSetText CUILabel where
     setText c s = withCString s (c_uiLabelSetText c)
 
+uiNewLabel s = withCString s c_uiNewLabel
+
 foreign import capi "ui.h uiNewLabel"
     c_uiNewLabel :: CString -> IO CUILabel
 
@@ -506,8 +527,12 @@ foreign import capi "ui.h uiBoxSetPadded"
 foreign import capi "ui.h uiNewHorizontalBox"
     c_uiNewHorizontalBox :: IO CUIBox
 
+uiNewHorizontalBox = c_uiNewHorizontalBox
+
 foreign import capi "ui.h uiNewVerticalBox"
     c_uiNewVerticalBox :: IO CUIBox
+
+uiNewVerticalBox = c_uiNewVerticalBox
 
 -- *** CUITabs <- uiTab
 newtype CUITabs = CUITab (Ptr RawTab)
@@ -856,6 +881,8 @@ instance HasSetValue CUIProgressBar where
 
 foreign import capi "ui.h uiNewProgressBar"
     c_uiNewProgressBar :: IO CUIProgressBar
+
+uiNewProgressBar = c_uiNewProgressBar
 
 -- *** CUISpinbox <- uiSpinbox
 newtype CUISpinbox = CUISpinbox (Ptr RawSpinbox)

@@ -137,6 +137,7 @@ library
       ./vendor/libui/darwin/util.m
       ./vendor/libui/darwin/window.m
   build-depends: async
+               , monad-loops
                , base >=4.8
                , data-default
                , mtl
@@ -156,6 +157,7 @@ executable button-example
   hs-source-dirs:
       examples
   build-depends: async
+               , monad-loops
                , base
                , data-default
                , libui
@@ -170,6 +172,7 @@ executable libui-simple-progressbar-example
   hs-source-dirs:
       examples
   build-depends: async
+               , monad-loops
                , base
                , data-default
                , libui
@@ -184,6 +187,7 @@ executable control-gallery
   hs-source-dirs:
       examples
   build-depends: async
+               , monad-loops
                , base
                , data-default
                , libui
@@ -197,6 +201,7 @@ test-suite hspec
   main-is: Spec.hs
   type: exitcode-stdio-1.0
   build-depends: base
+               , monad-loops
                , hspec
                , QuickCheck
   hs-source-dirs: test

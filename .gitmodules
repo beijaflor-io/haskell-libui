@@ -1,3 +1,3 @@
 [submodule "vendor/libui"]
 	path = vendor/libui
-	url = https://github.com/andlabs/libui
+	url = git@github.com:beijaflor-io/libui

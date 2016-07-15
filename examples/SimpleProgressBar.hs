@@ -1,30 +1,42 @@
 import Control.Concurrent
+import Control.Concurrent.Async
+import Control.Exception
 import Control.Monad
+import Control.Monad.Loops
 import Foreign.Ptr
 import Graphics.LibUI.FFI
 import System.Exit
+import System.IO
 
 main = do
+    hSetBuffering stdout NoBuffering
+
     uiInit
 
-    pg <- c_uiNewProgressBar
+    lb <- uiNewLabel "Starting"
+    pg <- uiNewProgressBar
 
-    forkOn 2 $ do
+    forkIO $ do
         forM_ [0..100] $ \i -> do
             threadDelay (1000 * 100)
             v <- getValue pg
-            print (v, i)
-            uiQueueMain (setValue pg i)
+            uiQueueMain $ do
+                setText lb (show i ++ "% Done")
+                setValue pg i
         uiQuit
-        exitSuccess
 
-    vb <- c_uiNewHorizontalBox
-    vb `appendChild` pg
+    hb <- uiNewVerticalBox
+    hb `appendChild` lb
+    hb `appendChild` pg
 
-    wn <- uiNewWindow "Hello World" 680 400 True
+    wn <- uiNewWindow "SimpleProgressBar.hs" 300 100 True
     wn `setMargined` True
     wn `onClosing` uiQuit
-    wn `setChild` vb
+    wn `setChild` hb
+    uiOnShouldQuit (uiQuit >> return 0)
 
     uiShow wn
-    uiMain
+    uiMainSteps
+    whileM getHasMain $ do
+        h <- uiMainStep 0
+        when (h == 0) $ threadDelay (1000 * 1000 * 16)

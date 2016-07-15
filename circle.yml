@@ -5,6 +5,7 @@ machine:
 checkout:
   post:
     - cat .gitmodules
+    - git submodule deinit -f .
     - git submodule init
     - git submodule sync
     - git submodule update

@@ -198,6 +198,21 @@ executable libui-simple-counter-example
   default-language: Haskell2010
   ghc-options: -threaded
 
+executable libui-simple-control-gallery
+  main-is: SimpleControlGallery.hs
+  hs-source-dirs:
+      examples
+  build-depends: async
+               , monad-loops
+               , base
+               , data-default
+               , libui
+               , mtl
+               , time
+               , transformers
+  default-language: Haskell2010
+  ghc-options: -threaded
+
 executable control-gallery
   main-is: ControlGallery.hs
   hs-source-dirs:

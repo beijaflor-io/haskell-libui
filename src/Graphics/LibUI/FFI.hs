@@ -23,9 +23,9 @@ module Graphics.LibUI.FFI
   where
 
 import           Control.Concurrent
-import           Control.Monad (when, (>=>))
+import           Control.Monad       (when, (>=>))
 import           Control.Monad.Loops
-import           Foreign       hiding (void)
+import           Foreign             hiding (void)
 import           Foreign.C
 import           System.IO.Unsafe
 
@@ -209,6 +209,9 @@ class HasOnShouldQuit w where
 
 class HasSetMargined w where
     setMargined :: w -> Bool -> IO ()
+
+class HasGetMargined w where
+    getMargined :: w -> IO Bool
 
 -- |
 -- Displays a control ('c_uiControlShow')
@@ -540,6 +543,10 @@ newtype CUITabs = CUITab (Ptr RawTab)
 
 data RawTab
 
+appendTab tabs (name, child) = withCString name $ \cname -> do
+    c <- toCUIControlIO child
+    c_uiTabAppend tabs cname c
+
 foreign import capi "ui.h uiTabAppend"
     c_uiTabAppend
       :: CUITabs
@@ -562,8 +569,19 @@ foreign import capi "ui.h uiTabNumPages"
 foreign import capi "ui.h uiTabMargined"
     c_uiTabMargined :: CUITabs -> CInt -> IO CInt
 
+instance HasGetMargined (CUITabs, Int) where
+    getMargined (tabs, nt) = do
+        c <- c_uiTabMargined tabs (fromIntegral nt)
+        return $ numToBool c
+
 foreign import capi "ui.h uiTabSetMargined"
     c_uiTabSetMargined :: CUITabs -> CInt -> CInt -> IO ()
+
+instance HasSetMargined (CUITabs, Int) where
+    setMargined (tabs, nt) i =
+        c_uiTabSetMargined tabs (fromIntegral nt) (boolToNum i)
+
+uiNewTabs = c_uiNewTab
 
 foreign import capi "ui.h uiNewTab"
     c_uiNewTab :: IO CUITabs

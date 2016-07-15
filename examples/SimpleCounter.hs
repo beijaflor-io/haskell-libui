@@ -1,7 +1,7 @@
-import Control.Concurrent
-import Control.Monad
-import Control.Monad.Loops
-import Graphics.LibUI
+import           Control.Concurrent
+import           Control.Monad
+import           Control.Monad.Loops
+import           Graphics.LibUI
 
 main :: IO ()
 main = do

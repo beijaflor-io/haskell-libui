@@ -4,6 +4,7 @@ machine:
 
 checkout:
   post:
+    - cat .gitmodules
     - git submodule sync
     - git submodule update --init
 

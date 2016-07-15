@@ -168,7 +168,7 @@ executable button-example
   ghc-options: -threaded
 
 executable libui-simple-progressbar-example
-  main-is: SimpleProgressBar.hs
+  main-is: SimpleProgressBar.lhs
   hs-source-dirs:
       examples
   build-depends: async

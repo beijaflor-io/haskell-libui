@@ -1,6 +1,9 @@
 build: FORCE
 	stack build --install-ghc --allow-different-user
 
+libui: FORCE
+	cd ./vendor/libui && mkdir -p build && cd build && rm -rf * && cmake .. && make examples
+
 run: FORCE
 	stack run -i
 

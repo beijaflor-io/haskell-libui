@@ -35,6 +35,7 @@ library
   -- extra-libraries: ui
   extra-lib-dirs: /Users/yamadapc/program/github.com/beijaflor-io/haskell-libui/vendor/libui/build/out/
   include-dirs: . ./vendor/libui/ ./vendor/libui/common/ ./vendor/libui/darwin/
+
   includes:
       ui.h
       uipriv.h
@@ -169,6 +170,21 @@ executable button-example
 
 executable libui-simple-progressbar-example
   main-is: SimpleProgressBar.lhs
+  hs-source-dirs:
+      examples
+  build-depends: async
+               , monad-loops
+               , base
+               , data-default
+               , libui
+               , mtl
+               , time
+               , transformers
+  default-language: Haskell2010
+  ghc-options: -threaded
+
+executable libui-simple-counter-example
+  main-is: SimpleCounter.hs
   hs-source-dirs:
       examples
   build-depends: async

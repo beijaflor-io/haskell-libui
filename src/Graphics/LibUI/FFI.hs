@@ -649,6 +649,8 @@ foreign import capi "ui.h uiButtonText"
 foreign import capi "ui.h uiNewButton"
     c_uiNewButton :: CString -> IO CUIButton
 
+uiNewButton str = withCString str c_uiNewButton
+
 -- *** CUICheckbox <- uiCheckbox
 newtype CUICheckbox = CUICheckbox (Ptr RawCheckbox)
   deriving(Show, ToCUIControl)

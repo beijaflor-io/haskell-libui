@@ -1,6 +1,9 @@
 build: FORCE
 	stack build --install-ghc --allow-different-user
 
+vagrant-build: FORCE
+	vagrant up && vagrant provision && vagrant ssh -c 'cd /vagrant && make build'
+
 libui: FORCE
 	cd ./vendor/libui && mkdir -p build && cd build && rm -rf * && cmake .. && make examples
 

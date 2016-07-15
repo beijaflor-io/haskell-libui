@@ -6,9 +6,7 @@ checkout:
   post:
     - cat .gitmodules
     - git submodule deinit -f .
-    - git submodule init
-    - git submodule sync
-    - git submodule update
+    - git submodule update --init
 
 dependencies:
   cache_directories:

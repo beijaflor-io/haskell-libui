@@ -174,6 +174,11 @@ class HasSetText s where
     setText :: s -> String -> IO ()
 
 -- |
+-- Controls with `ui...SetReadOnly` functions
+class HasSetReadOnly s where
+    setReadOnly :: s -> Bool -> IO ()
+
+-- |
 -- Controls with `ui...SetValue` functions
 class HasSetValue s where
     setValue :: s -> Int -> IO ()
@@ -189,6 +194,11 @@ class HasOnClicked s where
     onClick :: s -> IO () -> IO ()
 
 -- |
+-- Controls with `ui...OnChanged` functions
+class HasOnChanged s where
+    onChange :: s -> IO () -> IO ()
+
+-- |
 -- Controls with `ui...SetChecked` functions
 class HasSetChecked s where
     setChecked :: s -> Bool -> IO ()
@@ -200,12 +210,28 @@ class HasSetChild s where
 
 class HasAppendChild s where
     appendChild :: ToCUIControlIO a => s -> a -> IO ()
+    appendChildStretchy :: ToCUIControlIO a => s -> a -> IO ()
+    appendChildStretchy = appendChild
+
+appendIOChild container childAction = do
+    c <- childAction
+    container `appendChild` c
+
+appendIOChildStretchy container childAction = do
+    c <- childAction
+    container `appendChildStretchy` c
 
 class HasOnClosing w where
     onClosing :: w -> IO () -> IO ()
 
 class HasOnShouldQuit w where
     onShouldQuit :: w -> IO () -> IO ()
+
+class HasSetPadded w where
+    setPadded :: w -> Bool -> IO ()
+
+class HasGetPadded w where
+    getPadded :: w -> IO Bool
 
 class HasSetMargined w where
     setMargined :: w -> Bool -> IO ()
@@ -516,6 +542,9 @@ foreign import capi "ui.h uiBoxAppend"
 instance HasAppendChild CUIBox where
     appendChild b c = do
         c' <- toCUIControlIO c
+        c_uiBoxAppend b c' 0
+    appendChildStretchy b c = do
+        c' <- toCUIControlIO c
         c_uiBoxAppend b c' 1
 
 foreign import capi "ui.h uiBoxDelete"
@@ -524,8 +553,16 @@ foreign import capi "ui.h uiBoxDelete"
 foreign import capi "ui.h uiBoxPadded"
     c_uiBoxPadded :: CUIBox -> IO CInt
 
+instance HasGetPadded CUIBox where
+    getPadded b = do
+        p <- c_uiBoxPadded b
+        return (numToBool p)
+
 foreign import capi "ui.h uiBoxSetPadded"
     c_uiBoxSetPadded :: CUIBox -> CInt -> IO ()
+
+instance HasSetPadded CUIBox where
+    setPadded b p = c_uiBoxSetPadded b (boolToNum p)
 
 foreign import capi "ui.h uiNewHorizontalBox"
     c_uiNewHorizontalBox :: IO CUIBox
@@ -546,6 +583,12 @@ data RawTab
 appendTab tabs (name, child) = withCString name $ \cname -> do
     c <- toCUIControlIO child
     c_uiTabAppend tabs cname c
+
+appendTabMargined tabs (name, child) = withCString name $ \cname -> do
+    c <- toCUIControlIO child
+    c_uiTabAppend tabs cname c
+    n <- c_uiTabNumPages tabs
+    c_uiTabSetMargined tabs (n - 1) 1
 
 foreign import capi "ui.h uiTabAppend"
     c_uiTabAppend
@@ -608,17 +651,136 @@ instance HasSetChild CUIGroup where
 foreign import capi "ui.h uiGroupMargined"
     c_uiGroupMargined :: CUIGroup -> IO CInt
 
+instance HasGetMargined CUIGroup where
+    getMargined g = do
+        c <- c_uiGroupMargined g
+        return $ numToBool c
+
+
+instance HasSetMargined CUIGroup where
+    setMargined w m = c_uiGroupSetMargined w (boolToNum m)
+
 foreign import capi "ui.h uiGroupSetMargined"
     c_uiGroupSetMargined :: CUIGroup -> CInt -> IO ()
 
+uiNewGroup s = withCString s c_uiNewGroup
+
 foreign import capi "ui.h uiNewGroup"
     c_uiNewGroup :: CString -> IO CUIGroup
+
+-- *** CUIGrid <- uiGrid
+newtype CUIGrid = CUIGrid (Ptr RawGrid)
+  deriving(Show, ToCUIControl)
+data RawGrid
+
+newtype CUIAlign = CUIAlign CInt
+  deriving(Show)
+
+data UIAlign = UIAlignFill
+             | UIAlignStart
+             | UIAlignCenter
+             | UIAlignEnd
+toCUIAlign UIAlignFill = CUIAlign 0
+toCUIAlign UIAlignStart = CUIAlign 1
+toCUIAlign UIAlignCenter = CUIAlign 2
+toCUIAlign UIAlignEnd = CUIAlign 3
+
+newtype CUIAt = CUIAt CInt
+  deriving(Show)
+
+data UIAt = UIAtLeading
+             | UIAtTop
+             | UIAtTrailing
+             | UIAtBottom
+
+toCUIAt UIAtLeading = CUIAt 0
+toCUIAt UIAtTop = CUIAt 1
+toCUIAt UIAtTrailing = CUIAt 2
+toCUIAt UIAtBottom = CUIAt 3
+
+uiGridAppend grid control left top xspan yspan hexpand halign vexpand valign = do
+    control' <- toCUIControlIO control
+    c_uiGridAppend
+        grid
+        control'
+        (fromIntegral left)
+        (fromIntegral top)
+        (fromIntegral xspan)
+        (fromIntegral yspan)
+        (fromIntegral hexpand)
+        (toCUIAlign halign)
+        (fromIntegral vexpand)
+        (toCUIAlign valign)
+
+foreign import capi "ui.h uiGridAppend"
+    c_uiGridAppend
+        :: CUIGrid
+        -> CUIControl
+        -> CInt
+        -- ^ Left
+        -> CInt
+        -- ^ Top
+        -> CInt
+        -- ^ Xspan
+        -> CInt
+        -- ^ Yspan
+        -> CInt
+        -- ^ Hexpand
+        -> CUIAlign
+        -- ^ Halign
+        -> CInt
+        -- ^ Vexpand
+        -> CUIAlign
+        -- ^ Valign
+        -> IO ()
+
+foreign import capi "ui.h uiGridInsertAt"
+    c_uiGridInsertAt
+        :: CUIGrid
+        -> CUIControl
+        -> CUIControl
+        -- ^ Old
+        -> CUIAt
+        -- ^ At
+        -> CInt
+        -- ^ Xspan
+        -> CInt
+        -- ^ Yspan
+        -> CInt
+        -- ^ Hexpand
+        -> CUIAlign
+        -- ^ Halign
+        -> CInt
+        -- ^ Vexpand
+        -> CUIAlign
+        -- ^ Valign
+        -> IO ()
+
+foreign import capi "ui.h uiGridPadded"
+    c_uiGridPadded :: CUIGrid -> IO CInt
+
+foreign import capi "ui.h uiGridSetPadded"
+    c_uiGridSetPadded :: CUIGrid -> CInt -> IO ()
+
+instance HasGetPadded CUIGrid where
+    getPadded g = do
+        p <- c_uiGridPadded g
+        return (numToBool p)
+
+instance HasSetPadded CUIGrid where
+    setPadded g p = c_uiGridSetPadded g (boolToNum p)
+
+uiNewGrid = c_uiNewGrid
+foreign import capi "ui.h uiNewGrid"
+    c_uiNewGrid :: IO CUIGrid
 
 -- *** CUISeparator <- uiSeparator
 newtype CUISeparator = CUISeparator (Ptr RawSeparator)
   deriving(Show, ToCUIControl)
 data RawSeparator
 
+uiNewHorizontalSeparator = c_uiNewHorizontalSeparator
+uiNewVerticalSeparator = c_uiNewVerticalSeparator
 foreign import capi "ui.h uiNewHorizontalSeparator"
     c_uiNewHorizontalSeparator :: IO CUISeparator
 
@@ -699,6 +861,8 @@ instance HasSetChecked CUICheckbox where
 foreign import capi "ui.h uiNewCheckbox"
     c_uiNewCheckbox :: CString -> IO CUICheckbox
 
+uiNewCheckbox s = withCString s c_uiNewCheckbox
+
 -- *** CUIEntry <- uiEntry
 newtype CUIEntry = CUIEntry (Ptr RawEntry)
   deriving(Show, ToCUIControl)
@@ -716,17 +880,31 @@ instance HasSetText CUIEntry where
 foreign import capi "ui.h uiEntryOnChanged"
     c_uiEntryOnChanged :: CUIEntry -> FunPtr (CUIEntry -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
+instance HasOnChanged CUIEntry where
+    onChange btn action = do
+        f <- castFunPtr <$> c_wrap2 (\_ _ -> action)
+        c_uiEntryOnChanged btn f nullPtr
+
 foreign import capi "ui.h uiEntryReadOnly"
     c_uiEntryReadOnly :: CUIEntry -> IO CInt
+
+instance HasSetReadOnly CUIEntry where
+    setReadOnly e b = c_uiEntrySetReadOnly e (boolToNum b)
 
 foreign import capi "ui.h uiEntrySetReadOnly"
     c_uiEntrySetReadOnly :: CUIEntry -> CInt -> IO ()
 
+uiNewEntry = c_uiNewEntry
+
 foreign import capi "ui.h uiNewEntry"
     c_uiNewEntry :: IO CUIEntry
 
+uiNewPasswordEntry = c_uiNewPasswordEntry
+
 foreign import capi "ui.h uiNewPasswordEntry"
     c_uiNewPasswordEntry :: IO CUIEntry
+
+uiNewSearchEntry = c_uiNewSearchEntry
 
 foreign import capi "ui.h uiNewSearchEntry"
     c_uiNewSearchEntry :: IO CUIEntry
@@ -739,6 +917,9 @@ data RawSlider
 foreign import capi "ui.h uiSliderValue"
     c_uiSliderValue :: CUISlider -> IO CInt
 
+instance HasGetValue CUISlider where
+    getValue c = fromIntegral <$> c_uiSliderValue c
+
 foreign import capi "ui.h uiSliderSetValue"
     c_uiSliderSetValue :: CUISlider -> CInt -> IO ()
 
@@ -748,16 +929,31 @@ instance HasSetValue CUISlider where
 foreign import capi "ui.h uiSliderOnChanged"
     c_uiSliderOnChanged :: CUISlider -> FunPtr (CUISlider -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
+instance HasOnChanged CUISlider where
+    onChange btn action = do
+        f <- castFunPtr <$> c_wrap2 (\_ _ -> action)
+        c_uiSliderOnChanged btn f nullPtr
+
 foreign import capi "ui.h uiNewSlider"
     c_uiNewSlider :: CInt -> CInt -> IO CUISlider
+
+uiNewSlider low high = c_uiNewSlider (fromIntegral low) (fromIntegral high)
 
 -- *** CUICombobox <- uiCombobox
 newtype CUICombobox = CUICombobox (Ptr RawCombobox)
   deriving(Show, ToCUIControl)
 data RawCombobox
 
+class HasAppendOption a where
+    appendOption :: a -> String -> IO ()
+    appendOptions :: a -> [String] -> IO ()
+    appendOptions x = mapM_ (appendOption x)
+
+instance HasAppendOption CUICombobox where
+    appendOption c s = withCString s (c_uiComboboxAppend c)
+
 foreign import capi "ui.h uiComboboxAppend"
-    c_uiComboboxAppend :: CUICombobox -> CUIControl -> IO ()
+    c_uiComboboxAppend :: CUICombobox -> CString -> IO ()
 
 foreign import capi "ui.h uiComboboxSelected"
     c_uiComboboxSelected :: CUICombobox -> IO CInt
@@ -768,6 +964,8 @@ foreign import capi "ui.h uiComboboxSetSelected"
 foreign import capi "ui.h uiComboboxOnSelected"
     c_uiComboboxOnSelected :: CUICombobox -> FunPtr (CUICombobox -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
+uiNewCombobox = c_uiNewCombobox
+
 foreign import capi "ui.h uiNewCombobox"
     c_uiNewCombobox :: IO CUICombobox
 
@@ -777,7 +975,10 @@ newtype CUIEditableCombobox = CUIEditableCombobox (Ptr RawEditableCombobox)
 data RawEditableCombobox
 
 foreign import capi "ui.h uiEditableComboboxAppend"
-    c_uiEditableComboboxAppend :: CUIEditableCombobox -> CUIControl -> IO ()
+    c_uiEditableComboboxAppend :: CUIEditableCombobox -> CString -> IO ()
+
+instance HasAppendOption CUIEditableCombobox where
+    appendOption c s = withCString s (c_uiEditableComboboxAppend c)
 
 foreign import capi "ui.h uiEditableComboboxText"
     c_uiEditableComboboxText :: CUIEditableCombobox -> IO CString
@@ -791,6 +992,13 @@ instance HasSetText CUIEditableCombobox where
 foreign import capi "ui.h uiEditableComboboxOnChanged"
     c_uiEditableComboboxOnChanged :: CUIEditableCombobox -> FunPtr (CUIEditableCombobox -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
+instance HasOnChanged CUIEditableCombobox where
+    onChange btn action = do
+        f <- castFunPtr <$> c_wrap2 (\_ _ -> action)
+        c_uiEditableComboboxOnChanged btn f nullPtr
+
+
+uiNewEditableCombobox = c_uiNewEditableCombobox
 foreign import capi "ui.h uiNewEditableCombobox"
     c_uiNewEditableCombobox :: IO CUIEditableCombobox
 
@@ -802,6 +1010,9 @@ data RawRadioButtons
 foreign import capi "ui.h uiRadioButtonsAppend"
     c_uiRadioButtonsAppend :: CUIRadioButtons -> CString -> IO ()
 
+instance HasAppendOption CUIRadioButtons where
+    appendOption c s = withCString s (c_uiRadioButtonsAppend c)
+
 foreign import capi "ui.h uiRadioButtonsSelected"
     c_uiRadioButtonsSelected :: CUIRadioButtons -> IO CInt
 
@@ -811,6 +1022,7 @@ foreign import capi "ui.h uiRadioButtonsSetSelected"
 foreign import capi "ui.h uiRadioButtonsOnSelected"
     c_uiRadioButtonsOnSelected :: CUIRadioButtons -> FunPtr (CUIRadioButtons -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
+uiNewRadioButtons = c_uiNewRadioButtons
 foreign import capi "ui.h uiNewRadioButtons"
     c_uiNewRadioButtons :: IO CUIRadioButtons
 
@@ -832,6 +1044,23 @@ foreign import capi "ui.h uiFormAppend"
       -- ^ Whether the child is stretchy
       -> IO ()
 
+uiFormAppend form name input stretchy = withCString name $ \cname ->
+    c_uiFormAppend form cname input (boolToNum stretchy)
+
+class ToAppendInput e where
+    appendInput :: CUIForm -> e -> IO ()
+
+instance ToCUIControlIO c => ToAppendInput (String, c, Bool) where
+    form `appendInput` (name, input, stretchy) = do
+        input' <- toCUIControlIO input
+        uiFormAppend form name input' stretchy
+
+instance ToCUIControlIO c => ToAppendInput (String, c) where
+    form `appendInput` (name, input) = form `appendInput` (name, input, True)
+
+-- appendInput form (name, input) = uiFormAppend form name input True
+-- appendInputNonStretchy form (name, input) = uiFormAppend form name input False
+
 foreign import capi "ui.h uiFormDelete"
     c_uiFormDelete
       :: CUIForm
@@ -843,11 +1072,57 @@ foreign import capi "ui.h uiFormDelete"
 foreign import capi "ui.h uiFormPadded"
     c_uiFormPadded :: CUIForm -> IO CInt
 
+instance HasGetPadded CUIForm where
+    getPadded b = do
+        p <- c_uiFormPadded b
+        return $ numToBool p
+
 foreign import capi "ui.h uiFormSetPadded"
     c_uiFormSetPadded :: CUIForm -> CInt -> IO ()
 
+instance HasSetPadded CUIForm where
+    setPadded b p = c_uiFormSetPadded b (boolToNum p)
+
+uiNewForm = c_uiNewForm
+
 foreign import capi "ui.h uiNewForm"
     c_uiNewForm :: IO CUIForm
+
+-- *** CUIDatePicker <- uiDatePicker
+newtype CUIDateTimePicker = CUIDateTimePicker (Ptr RawDateTimePicker)
+  deriving(Show, ToCUIControl)
+data RawDateTimePicker
+
+uiNewDatePicker = c_uiNewDatePicker
+uiNewTimePicker = c_uiNewTimePicker
+uiNewDateTimePicker = c_uiNewDateTimePicker
+
+foreign import capi "ui.h uiNewDatePicker"
+    c_uiNewDatePicker :: IO CUIDateTimePicker
+
+foreign import capi "ui.h uiNewTimePicker"
+    c_uiNewTimePicker :: IO CUIDateTimePicker
+
+foreign import capi "ui.h uiNewDateTimePicker"
+    c_uiNewDateTimePicker :: IO CUIDateTimePicker
+
+-- *** CUIFontButton <- uiFontButton
+newtype CUIFontButton = CUIFontButton (Ptr RawFontButton)
+  deriving(Show, ToCUIControl)
+data RawFontButton
+
+uiNewFontButton = c_uiNewFontButton
+foreign import capi "ui.h uiNewFontButton"
+    c_uiNewFontButton :: IO CUIFontButton
+
+-- *** CUIColorButton <- uiColorButton
+newtype CUIColorButton = CUIColorButton (Ptr RawColorButton)
+  deriving(Show, ToCUIControl)
+data RawColorButton
+
+uiNewColorButton = c_uiNewColorButton
+foreign import capi "ui.h uiNewColorButton"
+    c_uiNewColorButton :: IO CUIColorButton
 
 -- *** CUIMultilineEntry <- uiMultilineEntry
 newtype CUIMultilineEntry = CUIMultilineEntry (Ptr RawMultilineEntry)
@@ -869,17 +1144,29 @@ foreign import capi "ui.h uiMultilineEntryAppend"
 foreign import capi "ui.h uiMultilineEntryOnChanged"
     c_uiMultilineEntryOnChanged :: CUIMultilineEntry -> FunPtr (CUIMultilineEntry -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
+instance HasOnChanged CUIMultilineEntry where
+    onChange m action = do
+        f <- castFunPtr <$> c_wrap2 (\_ _ -> action)
+        c_uiMultilineEntryOnChanged m f nullPtr
+
 foreign import capi "ui.h uiMultilineEntryReadOnly"
     c_uiMultilineEntryReadOnly :: CUIMultilineEntry -> IO CInt
 
 foreign import capi "ui.h uiMultilineEntrySetReadOnly"
     c_uiMultilineEntrySetReadOnly :: CUIMultilineEntry -> CInt -> IO ()
 
+instance HasSetReadOnly CUIMultilineEntry where
+    setReadOnly e b = c_uiMultilineEntrySetReadOnly e (boolToNum b)
+
 foreign import capi "ui.h uiNewMultilineEntry"
     c_uiNewMultilineEntry :: IO CUIMultilineEntry
 
+uiNewMultilineEntry = c_uiNewMultilineEntry
+
 foreign import capi "ui.h uiNewNonWrappingMultilineEntry"
     c_uiNewNonWrappingMultilineEntry :: IO CUIMultilineEntry
+
+uiNewNonWrappingMultilineEntry = c_uiNewNonWrappingMultilineEntry
 
 -- ** Progress Indicators
 -- *** CUIProgressBar <- uiProgressBar
@@ -912,6 +1199,9 @@ data RawSpinbox
 foreign import capi "ui.h uiSpinboxValue"
     c_uiSpinboxValue :: CUISpinbox -> IO CInt
 
+instance HasGetValue CUISpinbox where
+    getValue c = fromIntegral <$> c_uiSpinboxValue c
+
 foreign import capi "ui.h uiSpinboxSetValue"
     c_uiSpinboxSetValue :: CUISpinbox -> CInt -> IO ()
 
@@ -921,8 +1211,15 @@ instance HasSetValue CUISpinbox where
 foreign import capi "ui.h uiSpinboxOnChanged"
     c_uiSpinboxOnChanged :: CUISpinbox -> FunPtr (CUISpinbox -> DataPtr -> IO ()) -> DataPtr -> IO ()
 
+instance HasOnChanged CUISpinbox where
+    onChange m action = do
+        f <- castFunPtr <$> c_wrap2 (\_ _ -> action)
+        c_uiSpinboxOnChanged m f nullPtr
+
 foreign import capi "ui.h uiNewSpinbox"
     c_uiNewSpinbox :: CInt -> CInt -> IO CUISpinbox
+
+uiNewSpinbox low high = c_uiNewSpinbox (fromIntegral low) (fromIntegral high)
 
 -- * The Menubar
 -- ** CUIMenu <- uiMenu
@@ -987,8 +1284,32 @@ instance HasSetChecked CUIMenuItem where
 foreign import capi "ui.h uiOpenFile"
     c_uiOpenFile :: CUIWindow -> IO CString
 
+peekCStringSafe :: CString -> IO (Maybe String)
+peekCStringSafe cstr | cstr == nullPtr = return Nothing
+peekCStringSafe cstr = do
+    str <- peekCString cstr
+    return $ case str of
+        "" -> Nothing
+        _ -> Just str
+
+uiOpenFile :: CUIWindow -> IO (Maybe FilePath)
+uiOpenFile wn = do
+    cstr <- c_uiOpenFile wn
+    peekCStringSafe cstr
+
+uiSaveFile :: CUIWindow -> IO (Maybe FilePath)
+uiSaveFile wn = do
+    cstr <- c_uiSaveFile wn
+    peekCStringSafe cstr
+
 foreign import capi "ui.h uiSaveFile"
     c_uiSaveFile :: CUIWindow -> IO CString
+
+uiMsgBox w t d = withCString t $ \t' -> withCString d $ \d' ->
+    c_uiMsgBox w t' d'
+
+uiMsgBoxError w t d = withCString t $ \t' -> withCString d $ \d' ->
+    c_uiMsgBoxError w t' d'
 
 foreign import capi "ui.h uiMsgBox"
     c_uiMsgBox :: CUIWindow -> CString -> CString -> IO ()

@@ -1,5 +1,8 @@
 module Graphics.LibUI.FFI
-    ( module Graphics.LibUI.FFI.Wrapped
+    (
+      -- * Imperative API that isn't C
+      module Graphics.LibUI.FFI.Wrapped
+      -- * Imperative API that is C
     , module Graphics.LibUI.FFI.Raw
     )
   where

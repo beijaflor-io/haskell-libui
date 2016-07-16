@@ -268,6 +268,7 @@ uiQuit = do
 --         'uiQueueMain' ('setValue' pg i)
 --         ^ Fork a thread
 --     -- .. 'setChild' & 'uiMain'
+-- @
 uiQueueMain :: IO () -> IO ()
 uiQueueMain a = do
     m <- getHasMain

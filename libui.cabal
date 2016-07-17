@@ -22,8 +22,9 @@ library
   -- ghc-options: -optl-Wl,-rpath,'$ORIGIN'"
   frameworks: Foundation CoreFoundation AppKit Cocoa WebKit
   if os(linux)
-    extra-libraries: gtk-3 glib-2.0 gdk-3 pango-1.0 gobject-2.0
+    extra-libraries: gtk-3 glib-2.0 gdk-3 pango-1.0 gobject-2.0 pangocairo-1.0 cairo
     include-dirs:
+        /usr/lib/x86_64-linux-gnu/
         /usr/lib/x86_64-linux-gnu/glib-2.0/include/
         /usr/include/glib-2.0/
         /usr/include/cairo/

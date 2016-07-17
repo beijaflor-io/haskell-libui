@@ -256,7 +256,7 @@ data UIWindow c =
              , uiWindowWidth                :: Int
              , uiWindowHeight               :: Int
              , uiWindowHasMenubar           :: Bool
-             , uiWindowMargin               :: Int
+             , uiWindowMargined             :: Bool
              , uiWindowChild                :: c
              , uiWindowOnContentSizeChanged :: Maybe ((Int, Int) -> IO ())
              , uiWindowOnClosing            :: Maybe (IO ())
@@ -267,7 +267,7 @@ instance Default (UIWindow c) where
                    , uiWindowWidth = 680
                    , uiWindowHeight = 300
                    , uiWindowHasMenubar = True
-                   , uiWindowMargin = 0
+                   , uiWindowMargined = True
                    , uiWindowOnClosing = Nothing
                    , uiWindowOnContentSizeChanged = Nothing
                    , uiWindowChild = error "uiWindowChild needs to be overwritten"
@@ -287,7 +287,7 @@ instance {-# OVERLAPS #-} ToCUIControlIO a => ToCUIControlIO (UIWindow a) where
                  cb <- c_wrap2 (\_ _ -> onClosing)
                  c_uiWindowOnClosing w (castFunPtr cb) nullPtr)
             uiWindowOnClosing
-        c_uiWindowSetMargined w (fromIntegral uiWindowMargin)
+        w `setMargined` uiWindowMargined
 
         c <- toCUIControlIO uiWindowChild
         c_uiWindowSetChild w c

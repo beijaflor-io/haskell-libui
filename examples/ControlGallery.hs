@@ -5,10 +5,10 @@ import           Data.Time
 import           Graphics.LibUI
 
 main :: IO ()
-main = do
-    runUILoop $ do
+main =
+    runUILoop $
         wrap def { uiWindowTitle = "Control Gallery"
-                 , uiWindowMargin = 100
+                 , uiWindowWidth = 200
                  , uiWindowChild = vbox $ mdo
                      time <- label "Simple UI"
                      countM <- liftIO $ newMVar 0 :: UI (MVar Int)
@@ -16,13 +16,11 @@ main = do
                      btn <- button
                          def { uiButtonText = "Should be simple"
                              , uiButtonOnClicked = Just $ mdo
-                                     print time
                                      currentTime <- getCurrentTime
-                                     setText time ("Simple UI" ++ show currentTime)
-                                     currentCount <- modifyMVar_ countM (\c -> return (c + 1))
-                                     setText counter (show currentCount)
-                                     setText btn ("Should be simple " ++ show currentCount)
+                                     time `setText` ("Simple UI at " ++ show currentTime)
+                                     currentCount <- modifyMVar countM (\c -> return (c + 1, c + 1))
+                                     counter `setText` show currentCount
+                                     btn `setText` ("Should be simple " ++ show currentCount)
                              }
                      wrap btn
-                     return ()
                  }

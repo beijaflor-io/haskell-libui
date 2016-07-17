@@ -138,10 +138,11 @@ library
       ./vendor/libui/darwin/util.m
       ./vendor/libui/darwin/window.m
   build-depends: async
-               , monad-loops
                , base >=4.8
                , data-default
+               , monad-loops
                , mtl
+               , template-haskell
                , time
                , transformers
   exposed-modules: Graphics.LibUI
@@ -152,6 +153,8 @@ library
 
                  , Graphics.LibUI.Types
                  , Graphics.LibUI.MonadUI
+  other-modules: System.Info.Class
+               , System.Info.Class.TH
   hs-source-dirs:
       src
   default-language: Haskell2010
@@ -162,11 +165,12 @@ executable button-example
   hs-source-dirs:
       examples
   build-depends: async
-               , monad-loops
                , base
                , data-default
                , libui
+               , monad-loops
                , mtl
+               , template-haskell
                , time
                , transformers
   default-language: Haskell2010
@@ -177,11 +181,12 @@ executable libui-simple-progressbar-example
   hs-source-dirs:
       examples
   build-depends: async
-               , monad-loops
                , base
                , data-default
                , libui
+               , monad-loops
                , mtl
+               , template-haskell
                , time
                , transformers
   default-language: Haskell2010
@@ -192,11 +197,12 @@ executable libui-simple-counter-example
   hs-source-dirs:
       examples
   build-depends: async
-               , monad-loops
                , base
                , data-default
                , libui
+               , monad-loops
                , mtl
+               , template-haskell
                , time
                , transformers
   default-language: Haskell2010
@@ -207,11 +213,12 @@ executable libui-simple-control-gallery
   hs-source-dirs:
       examples
   build-depends: async
-               , monad-loops
                , base
                , data-default
                , libui
+               , monad-loops
                , mtl
+               , template-haskell
                , time
                , transformers
   default-language: Haskell2010
@@ -222,11 +229,12 @@ executable control-gallery
   hs-source-dirs:
       examples
   build-depends: async
-               , monad-loops
                , base
                , data-default
                , libui
+               , monad-loops
                , mtl
+               , template-haskell
                , time
                , transformers
   default-language: Haskell2010
@@ -235,9 +243,10 @@ executable control-gallery
 test-suite hspec
   main-is: Spec.hs
   type: exitcode-stdio-1.0
-  build-depends: base
-               , monad-loops
+  build-depends: QuickCheck
+               , base
                , hspec
-               , QuickCheck
+               , monad-loops
+               , template-haskell
   hs-source-dirs: test
   default-language: Haskell2010

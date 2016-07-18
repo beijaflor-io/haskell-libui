@@ -258,7 +258,7 @@ instance Default (UIWindow c) where
                    , uiWindowHeight = 300
                    , uiWindowHasMenubar = True
                    , uiWindowMargined = True
-                   , uiWindowOnClosing = Nothing
+                   , uiWindowOnClosing = Just uiQuit
                    , uiWindowOnContentSizeChanged = Nothing
                    , uiWindowDidMount = Nothing
                    , uiWindowChild = error "uiWindowChild needs to be overwritten"

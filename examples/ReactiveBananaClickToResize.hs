@@ -15,20 +15,23 @@ main = do
     runUILoop $ mdo
         wnd <- window' def { uiWindowTitle = "Click to resize"
                            , uiWindowWidth = 200
-                           , uiWindowDidMount = Just $ mdo
-                                   uiWindowCenter wnd
                            , uiWindowChild = vbox $ mdo
                                    time <- label "Simple UI"
                                    countM <- liftIO $ newMVar 0 :: UI (MVar Int)
                                    counter <- label ""
                                    btn <- button
                                           def { uiButtonText = "Should be simple"
-                                             }
+                                              , uiButtonOnClicked = Just (fire escounter ())
+                                              }
+
+                                   liftIO $ do
+                                       network <- setupNetwork escounter (wnd, btn, counter, time)
+                                       actuate network
+
                                    return ()
                            }
-        -- liftIO $ do
-        --     network <- setupNetwork escounter (wnd, btn, counter, time)
-        --     actuate network
+        wrap wnd
+        liftIO $ uiWindowCenter wnd
         return ()
 
 -- newtype AddHandler = AddHandler { register :: Handler a -> IO (IO ()) }
@@ -48,7 +51,7 @@ setupNetwork escounter (wnd, btn, counter, time) = compile $ do
   where
     updateUI currentCount = do
         currentTime <- getCurrentTime
-        -- wnd `setContentSize` (800, 800)
+        wnd `setContentSize` (800, 800)
         time `setText` ("Simple UI at " ++ show currentTime)
         counter `setText` show currentCount
         btn `setText` ("Should be simple " ++ show currentCount)

@@ -182,6 +182,7 @@ module Graphics.LibUI.FFI.Wrapped
     , HasAppendChild (..)
     , HasRemoveChild (..)
 
+    , HasOnPositionChanged (..)
     , HasOnClicked (..)
     , HasOnChanged (..)
     , HasOnClosing (..)
@@ -328,6 +329,9 @@ class HasGetValue s where
 -- | Controls with `ui...OnClicked` functions
 class HasOnClicked s where
     onClick :: s -> IO () -> IO ()
+
+class HasOnPositionChanged s where
+    onPositionChanged :: s -> IO () -> IO ()
 
 -- | Controls with `ui...OnChanged` functions
 class HasOnChanged s where
@@ -514,6 +518,12 @@ instance HasGetMargined CUIWindow where
 
 instance HasSetMargined CUIWindow where
     setMargined w m = c_uiWindowSetMargined w (boolToNum m)
+
+instance HasOnPositionChanged CUIWindow where
+    onPositionChanged w a = do
+        f <- castFunPtr <$> c_wrap2 (\_ _ -> a)
+        c_uiWindowOnPositionChanged w f nullPtr
+
 
 -- ** Labels
 -- *** CUILabel <- uiLabel

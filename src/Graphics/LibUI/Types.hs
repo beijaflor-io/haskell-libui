@@ -71,10 +71,12 @@ window title width height hasMenubar child = UI $ do
                        }
     return (c, [toCUIControl c])
 
-window' :: UIWindow (UI ()) -> UI CUIWindow
+window' :: UIWindow (UI a) -> UI (CUIWindow, a)
 window' w = UI $ do
-    cw <- toCUIIO w
-    return (cw, [toCUIControl cw])
+    (x, [c]) <- runUI (uiWindowChild w)
+    cw <- toCUIIO (w { uiWindowChild = c
+                     })
+    return ((cw, x), [toCUIControl cw])
 
 -- window' :: UIWindow -> UI CUIWindow
 -- window' win = UI $ do
@@ -121,8 +123,10 @@ group title items = UI $ do
     c <- toCUIIO $ UIGroup title 1 (vbox items) :: IO CUIGroup
     return (c, [toCUIControl c])
 
-progressbar :: Int -> UI ()
-progressbar value = wrap (UIProgressBar value)
+progressbar :: Int -> UI CUIProgressBar
+progressbar value = UI $ do
+    pg <- toCUIIO (UIProgressBar value)
+    return (pg, [toCUIControl pg])
 
 slider :: Int -> Int -> Int -> UI ()
 slider value min max = wrap (UISlider value min max)
@@ -458,11 +462,11 @@ instance {-# OVERLAPS #-} ToCUIControlIO UISlider where
 data UIProgressBar = UIProgressBar { uiProgressBarValue :: Int
                                    }
 
-instance {-# OVERLAPS #-} ToCUIControlIO UIProgressBar where
-    toCUIControlIO UIProgressBar{..} = do
+instance ToCUIControlIO' UIProgressBar CUIProgressBar where
+    toCUIIO UIProgressBar{..} = do
         pb <- c_uiNewProgressBar
         c_uiProgressBarSetValue pb (fromIntegral uiProgressBarValue)
-        return (toCUIControl pb)
+        return pb
 
 -- ** Separators
 data UISeparator = UIHorizontalSeparator

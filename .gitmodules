@@ -1,3 +1,6 @@
 [submodule "vendor/libui"]
 	path = vendor/libui
 	url = git@github.com:beijaflor-io/libui
+[submodule "vendor/haskell-ascii-progress"]
+	path = vendor/haskell-ascii-progress
+	url = git@github.com:yamadapc/haskell-ascii-progress

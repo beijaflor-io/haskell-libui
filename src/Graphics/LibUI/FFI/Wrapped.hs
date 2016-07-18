@@ -235,9 +235,10 @@ import           Graphics.LibUI.FFI.Raw
 --     uiMain
 -- @
 uiInit :: IO ()
-uiInit = alloca $ \ptr -> do
-    poke ptr (CSize (fromIntegral (sizeOf (CSize 0))))
-    c_uiInit ptr
+uiInit = do
+    alloca $ \ptr -> do
+        poke ptr (CSize (fromIntegral (sizeOf (CSize 0))))
+        c_uiInit ptr
 
 -- | Start the main loop
 uiMain :: IO ()
@@ -393,7 +394,8 @@ class HasGetMargined w where
 -- * CUIControl API
 -- | Displays a control ('c_uiControlShow')
 uiShow :: ToCUIControl a => a -> IO ()
-uiShow = c_uiControlShow . toCUIControl
+uiShow c = do
+    c_uiControlShow (toCUIControl c)
 
 -- | Hides a control ('c_uiControlHide')
 uiHide :: ToCUIControl a => a -> IO ()
@@ -445,8 +447,8 @@ uiNewWindow
     -> Bool
     -- ^ Has menubar
     -> IO CUIWindow
-uiNewWindow t w h hasMenubar = withCString t $ \t' ->
-    c_uiNewWindow t' (fromIntegral w) (fromIntegral h) (boolToNum hasMenubar)
+uiNewWindow t w h hasMenubar =
+    withCString t $ \t' -> c_uiNewWindow t' (fromIntegral w) (fromIntegral h) (boolToNum hasMenubar)
 
 setBorderless :: CUIWindow -> Bool -> IO ()
 setBorderless w b = c_uiWindowSetBorderless w (boolToNum b)
@@ -707,7 +709,9 @@ instance HasGetText CUIButton where
 instance HasSetText CUIButton where
     setText btn s = withCString s (c_uiButtonSetText btn)
 
-uiNewButton str = withCString str c_uiNewButton
+uiNewButton str = do
+    o <- withCString str c_uiNewButton
+    return o
 
 -- *** CUICheckbox <- uiCheckbox
 instance HasSetText CUICheckbox where

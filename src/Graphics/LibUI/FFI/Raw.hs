@@ -119,9 +119,7 @@ instance ToCUIControl a => ToCUIControlIO' a CUIControl where
     toCUIIO x = return $ toCUIControl x
 
 instance ToCUIControlIO' a CUIControl => ToCUIControlIO a where
-    toCUIControlIO x = do
-        cui <- toCUIIO x :: IO CUIControl
-        return $ cui
+    toCUIControlIO = toCUIIO
 
 foreign import capi "ui.h uiControlDestroy"
     c_uiControlDestroy :: CUIControl -> IO ()

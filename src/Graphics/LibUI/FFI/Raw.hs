@@ -1,4 +1,5 @@
-{-# LANGUAGE CApiFFI                    #-}
+{-# LANGUAGE AllowAmbiguousTypes                    #-}
+{-# LANGUAGE CApiFFI                   #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE ForeignFunctionInterface   #-}
@@ -108,11 +109,19 @@ instance ToCUIControl (Ptr a) where
 -- |
 -- Something that we can convert to a 'CUIControl', but need IO
 class ToCUIControlIO a where
+    -- type CUIType a -- :: ToCUIControl b => b
     toCUIControlIO :: a -> IO CUIControl
 
-instance ToCUIControl a => ToCUIControlIO a where
-    toCUIControlIO = return . toCUIControl
+class ToCUIControl b => ToCUIControlIO' a b where
+    toCUIIO :: ToCUIControl b => a -> IO b
 
+instance ToCUIControl a => ToCUIControlIO' a CUIControl where
+    toCUIIO x = return $ toCUIControl x
+
+instance ToCUIControlIO' a CUIControl => ToCUIControlIO a where
+    toCUIControlIO x = do
+        cui <- toCUIIO x :: IO CUIControl
+        return $ cui
 
 foreign import capi "ui.h uiControlDestroy"
     c_uiControlDestroy :: CUIControl -> IO ()

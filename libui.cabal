@@ -264,6 +264,23 @@ executable libui-reactive-banana-control-gallery
   default-language: Haskell2010
   ghc-options: -threaded
 
+executable libui-reactive-banana-click-to-resize
+  main-is: ReactiveBananaClickToResize.hs
+  hs-source-dirs:
+      examples
+  build-depends: async
+               , reactive-banana
+               , base
+               , data-default
+               , libui
+               , monad-loops
+               , mtl
+               , template-haskell
+               , time
+               , transformers
+  default-language: Haskell2010
+  ghc-options: -threaded
+
 test-suite hspec
   main-is: Spec.hs
   type: exitcode-stdio-1.0

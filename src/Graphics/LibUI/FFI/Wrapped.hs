@@ -551,12 +551,14 @@ uiNewHorizontalBox = c_uiNewHorizontalBox
 uiNewVerticalBox = c_uiNewVerticalBox
 
 -- *** CUITabs <- uiTab
+appendTab :: ToCUIControlIO c => CUITabs -> (String, c) -> IO ()
 appendTab tabs (name, child) = withCString name $ \cname -> do
     c <- toCUIControlIO child
     c_uiTabAppend tabs cname c
 
 removeTab = c_uiTabDelete
 
+appendTabMargined :: ToCUIControlIO c => CUITabs -> (String, c) -> IO ()
 appendTabMargined tabs (name, child) = withCString name $ \cname -> do
     c <- toCUIControlIO child
     c_uiTabAppend tabs cname c
@@ -618,6 +620,15 @@ toCUIAt UIAtTop = CUIAt 1
 toCUIAt UIAtTrailing = CUIAt 2
 toCUIAt UIAtBottom = CUIAt 3
 
+uiGridAppend
+    :: ToCUIControlIO c
+    => CUIGrid
+    -> c
+    -> Int -> Int
+    -> Int -> Int
+    -> Int -> UIAlign
+    -> Int -> UIAlign
+    -> IO ()
 uiGridAppend grid control left top xspan yspan hexpand halign vexpand valign = do
     control' <- toCUIControlIO control
     c_uiGridAppend
@@ -632,6 +643,16 @@ uiGridAppend grid control left top xspan yspan hexpand halign vexpand valign = d
         (fromIntegral vexpand)
         (toCUIAlign valign)
 
+uiGridInsertAt
+    :: (ToCUIControlIO oldControl, ToCUIControlIO newControl)
+    => CUIGrid
+    -> oldControl
+    -> newControl
+    -> UIAt
+    -> Int -> Int
+    -> Int -> UIAlign
+    -> Int -> UIAlign
+    -> IO ()
 uiGridInsertAt grid ocontrol ncontrol at xspan yspan hexpand halign vexpand valign = do
     ocontrol' <- toCUIControlIO ocontrol
     ncontrol' <- toCUIControlIO ncontrol

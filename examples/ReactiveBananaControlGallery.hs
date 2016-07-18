@@ -12,29 +12,27 @@ main :: IO ()
 main = do
     escounter <- newAddHandler
 
-    runUILoop $ wrap def { uiWindowTitle = "Control Gallery"
-                         , uiWindowWidth = 200
-                         , uiWindowChild = vbox $ mdo
-                                  time <- label "Simple UI"
-                                  countM <- liftIO $ newMVar 0 :: UI (MVar Int)
-                                  counter <- label ""
-                                  btn <- button
-                                      def { uiButtonText = "Should be simple"
-                                          , uiButtonOnClicked = Just (fire escounter ())
-                                          }
+    runUILoop $
+        window' def { uiWindowTitle = "Control Gallery"
+                    , uiWindowWidth = 200
+                    , uiWindowChild = vbox $
+                        mdo time <- label "Simple UI"
+                            countM <- liftIO $ newMVar 0 :: UI (MVar Int)
+                            counter <- label ""
+                            btn <- button def { uiButtonText = "Should be simple"
+                                              , uiButtonOnClicked = Just (fire escounter
+                                                                               ())
+                                              }
+                            liftIO $ do
+                                network <- setupNetwork escounter
+                                                        (btn, counter, time)
+                                actuate network
+                            return ()
+                    }
 
-                                  liftIO $ do
-                                      network <- setupNetwork escounter (btn, counter, time)
-                                      actuate network
-                                  return ()
-                 }
-
-{-----------------------------------------------------------------------------
-    Event sources
-------------------------------------------------------------------------------}
--- Event Sources - allows you to register event handlers
--- Your GUI framework should provide something like this for you
-type EventSource a = (AddHandler a, a -> IO ())
+-- newtype AddHandler = AddHandler { register :: Handler a -> IO (IO ()) }
+-- type Handler = a -> IO ()
+type EventSource a = (AddHandler a, Handler a)
 
 addHandler :: EventSource a -> AddHandler a
 addHandler = fst
@@ -42,10 +40,6 @@ addHandler = fst
 fire :: EventSource a -> a -> IO ()
 fire = snd
 
-{-----------------------------------------------------------------------------
-    Program logic
-------------------------------------------------------------------------------}
--- Set up the program logic in terms of events and behaviors.
 setupNetwork escounter (btn, counter, time) = compile $ do
     ecounter <- fromAddHandler (addHandler escounter)
     ecount <- accumE 0 $ (+1) <$ ecounter

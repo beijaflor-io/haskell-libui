@@ -1,8 +1,13 @@
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE InstanceSigs   #-}
 {-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE MultiParamTypeClasses     #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections       #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE UndecidableInstances       #-}
 module Graphics.LibUI.Types
   where
 
@@ -50,49 +55,32 @@ import           Graphics.LibUI.MonadUI
 runUILoop ui = run >> putStrLn "I'm still here"
   where
     run = do
-        alloca $ \ptr -> do
-            poke ptr (CSize (fromIntegral (sizeOf (CSize 0))))
-            c_uiInit ptr
+        uiInit
         (_, cs) <- runUI ui
-        mapM_ c_uiControlShow cs
-
-        mvRunning <- newEmptyMVar
-
-        forM_ cs $ \c -> do
-            cb <- castFunPtr <$> c_wrap2 (const (const (void (abort mvRunning))))
-            let (CUIControl ptr) = c
-            c_uiWindowOnClosing (CUIWindow (castPtr ptr)) cb nullPtr
-        cb <- c_wrap1I (const (abort mvRunning))
-        c_uiOnShouldQuit cb nullPtr
-
-        c_uiMainSteps
+        mapM_ uiShow cs
+        uiOnShouldQuit (uiQuit >> return 0)
         print "Start"
+        uiMain
 
-        loop mvRunning
-        takeMVar mvRunning `catch` \UserInterrupt -> do
-            print "interrupt"
-            void (abort mvRunning)
-    loop mvRunning = do
-        -- c_uiMain
-        e <- isEmptyMVar mvRunning
-        when e $ do
-            c_uiMainStep 0
-            loop mvRunning
-    abort mvRunning = do
-        print "abort"
-        c_uiQuit
-        tryPutMVar mvRunning ()
-        return 0
-
-window :: String -> Int -> Int -> Bool -> UI () -> UI ()
+window :: String -> Int -> Int -> Bool -> UI () -> UI CUIWindow
 window title width height hasMenubar child = UI $ do
-    c <- toCUIControlIO $ def { uiWindowTitle = title
-                              , uiWindowWidth = width
-                              , uiWindowHeight = height
-                              , uiWindowHasMenubar = hasMenubar
-                              , uiWindowChild = child
-                              }
-    return ((), [c])
+    c <- toCUIIO $ def { uiWindowTitle = title
+                       , uiWindowWidth = width
+                       , uiWindowHeight = height
+                       , uiWindowHasMenubar = hasMenubar
+                       , uiWindowChild = child
+                       }
+    return (c, [toCUIControl c])
+
+window' :: UIWindow (UI ()) -> UI CUIWindow
+window' w = UI $ do
+    cw <- toCUIIO w
+    return (cw, [toCUIControl cw])
+
+-- window' :: UIWindow -> UI CUIWindow
+-- window' win = UI $ do
+--     cuiWin@(CUIControl cwin) <- toCUIControlIO win
+--     return (CUIWindow (castPtr cwin), [cuiWin])
 
 -- button :: String -> UI ()
 -- button title = wrap (UIButton title Nothing)
@@ -114,14 +102,14 @@ vbox = box UIVerticalBox
 hbox :: UI a -> UI a
 hbox = box UIHorizontalBox
 
-box
-  :: (Num a1, ToCUIControlIO r) =>
-     (a1 -> [UIBoxChild CUIControl] -> r) -> UI a -> UI a
+-- box
+--   :: (ToCUIControlIO' r CUIControl) =>
+--      (Bool -> [UIBoxChild CUIControl] -> r) -> UI a -> UI a
+box :: (Bool -> [UIBoxChild CUIControl] -> UIBox CUIControl) -> UI a -> UI a
 box boxtype ui = UI $ do
-    (x, cs) <- runUI ui
-    c <- toCUIControlIO $ boxtype 1
-        (map (UIBoxChild False) cs)
-    return (x, [c])
+    (x, cs) <- runUI ui -- :: IO (a, [CUIControl])
+    c <- toCUIIO $ boxtype True (map (UIBoxChild False) cs) :: IO CUIBox
+    return (x, [toCUIControl c])
 
 
 menu :: String -> [UIMenuItem] -> UI ()
@@ -129,10 +117,10 @@ menu name items = UI $ do
     c <- toCUIControlIO $ UIMenu name items
     return ((), [])
 
-group :: String -> UI () -> UI ()
+group :: String -> UI () -> UI CUIGroup
 group title items = UI $ do
-    c <- toCUIControlIO $ UIGroup title 1 (vbox items)
-    return ((), [c])
+    c <- toCUIIO $ UIGroup title 1 (vbox items) :: IO CUIGroup
+    return (c, [toCUIControl c])
 
 progressbar :: Int -> UI ()
 progressbar value = wrap (UIProgressBar value)
@@ -151,15 +139,15 @@ spinbox value min max = wrap (UISpinbox value min max)
 --         return (r, c)
 --     c <- toCUIControlIO (UITab 1 ts')
 --     return ((), [c])
-tabs :: Writer [UI String] () -> UI ()
+tabs :: Writer [UI String] () -> UI CUITabs
 tabs wts = UI $ do
     let ts :: [UI String]
         ts = snd $ runWriter wts
     ts' <- forM ts $ \t -> do
         (r, c:_) <- runUI t
         return (r, c)
-    c <- toCUIControlIO (UITab 1 ts')
-    return ((), [c])
+    t <- toCUIIO (UITab 1 ts') :: IO CUITabs
+    return (t, [toCUIControl t])
 
 tab :: String -> UI () -> Writer [UI String] ()
 tab title ui = do
@@ -220,36 +208,37 @@ stuff = runUILoop ui
                     , "Save"
                     , UIMenuItemQuit
                     ]
-        window "libui Control Gallery" 640 300 True $
-            tabs $ do
+        void $ window "libui Control Gallery" 640 300 True $
+            void $ tabs $ do
                 tab "Basic Controls" $ do
-                    hbox $ do
+                    hbox $
                         -- button "Button"
                         checkbox "Checkbox"
                     label "This is a label. Right now, labels can only span one line."
-                    group "Entries" $
+                    void $ group "Entries" $
                         form [ formItem "Entry" (entry "")
                              , formItem "Entry" (entry "")
                              , formItem "Search Entry" (searchEntry "")
                              ]
                 tab "Basic Controls" $ hbox $ do
-                    group "Numbers" (return ())
-                    group "Lists" (return ())
+                    void $ group "Numbers" (return ())
+                    void $ group "Lists" (return ())
                 tab "Data Choosers" mempty
 
 -- ** Windows
-instance {-# OVERLAPS #-} ToCUIControlIO a => ToCUIControlIO [a] where
-    toCUIControlIO cs = toCUIControl <$> do
+instance {-# OVERLAPS #-} ToCUIControlIO' [CUIControl] CUIBox where
+    toCUIIO cs = do
         vb <- c_uiNewVerticalBox
         forM_ cs $ \c -> do
-            c' <- toCUIControlIO c
-            c_uiBoxAppend vb c' 1
+            c_uiBoxAppend vb c 1
         return vb
 
-instance {-# OVERLAPS #-} ToCUIControlIO (UI a) where
-    toCUIControlIO ui = do
-        (_, cs) <- runUI ui
-        toCUIControlIO cs
+instance {-# OVERLAPS #-} ToCUIControlIO' (UI a) CUIBox where
+    toCUIIO :: UI a -> IO CUIBox
+    toCUIIO ui = do
+        (_, cs) <- runUI ui :: IO (a, [CUIControl])
+        cs' <- toCUIIO cs :: IO CUIBox
+        return cs'
 
 data UIWindow c =
     UIWindow { uiWindowTitle                :: String
@@ -259,6 +248,7 @@ data UIWindow c =
              , uiWindowMargined             :: Bool
              , uiWindowChild                :: c
              , uiWindowOnContentSizeChanged :: Maybe ((Int, Int) -> IO ())
+             , uiWindowDidMount             :: Maybe (IO ())
              , uiWindowOnClosing            :: Maybe (IO ())
              }
 
@@ -270,28 +260,25 @@ instance Default (UIWindow c) where
                    , uiWindowMargined = True
                    , uiWindowOnClosing = Nothing
                    , uiWindowOnContentSizeChanged = Nothing
+                   , uiWindowDidMount = Nothing
                    , uiWindowChild = error "uiWindowChild needs to be overwritten"
                    }
 
-instance {-# OVERLAPS #-} ToCUIControlIO a => ToCUIControlIO (UIWindow a) where
-    toCUIControlIO UIWindow{..} = do
-        w <- join $ c_uiNewWindow
-            <$> newCString uiWindowTitle
-            <*> return (fromIntegral uiWindowWidth)
-            <*> return (fromIntegral uiWindowHeight)
-            <*> return (if uiWindowHasMenubar then 1 else 0)
+instance {-# OVERLAPPING #-} ToCUIControlIO' (UIWindow (UI ())) CUIWindow where
+    toCUIIO :: UIWindow (UI ()) -> IO CUIWindow
+    toCUIIO wnd@UIWindow{..} = do
+        box <- toCUIIO uiWindowChild :: IO CUIBox
+        toCUIIO wnd { uiWindowChild = toCUIControl box
+                    }
 
-        maybe
-            (return ())
-            (\onClosing -> do
-                 cb <- c_wrap2 (\_ _ -> onClosing)
-                 c_uiWindowOnClosing w (castFunPtr cb) nullPtr)
-            uiWindowOnClosing
+instance {-# OVERLAPPING #-} ToCUIControlIO' (UIWindow CUIControl) CUIWindow where
+    toCUIIO :: UIWindow CUIControl -> IO CUIWindow
+    toCUIIO wnd@UIWindow{..} = do
+        w <- uiNewWindow uiWindowTitle uiWindowWidth uiWindowHeight uiWindowHasMenubar
+        maybe (return ()) (onClosing w) uiWindowOnClosing
         w `setMargined` uiWindowMargined
-
-        c <- toCUIControlIO uiWindowChild
-        c_uiWindowSetChild w c
-        return $ toCUIControl w
+        w `setChild` uiWindowChild
+        return w
 
 -- ** Buttons
 data UIButton = UIButton { uiButtonText      :: String
@@ -315,15 +302,15 @@ instance {-# OVERLAPPING #-} ToCUIControlIO UIButton where
         return cbtn
 
 -- ** Boxes
-data UIBox c = UIHorizontalBox { uiBoxPadding  :: Int
+data UIBox c = UIHorizontalBox { uiBoxPadded  :: Bool
                                , uiBoxChildren :: [UIBoxChild c]
                                }
-             | UIVerticalBox { uiBoxPadding  :: Int
+             | UIVerticalBox { uiBoxPadded  :: Bool
                              , uiBoxChildren :: [UIBoxChild c]
                              }
 
 instance Default (UIBox c) where
-    def = UIVerticalBox { uiBoxPadding = 1
+    def = UIVerticalBox { uiBoxPadded = True
                         , uiBoxChildren = []
                         }
 
@@ -331,17 +318,17 @@ data UIBoxChild c = UIBoxChild { uiBoxChildStretchy :: Bool
                                , uiBoxChildControl  :: c
                                }
 
-instance {-# OVERLAPS #-} ToCUIControlIO c => ToCUIControlIO (UIBox c) where
-    toCUIControlIO ui = do
+instance {-# OVERLAPS #-} ToCUIControlIO' c CUIControl => ToCUIControlIO' (UIBox c) CUIBox where
+    toCUIIO ui = do
         b <- case ui of
             UIVerticalBox{} -> c_uiNewVerticalBox
             UIHorizontalBox{} -> c_uiNewHorizontalBox
-        c_uiBoxSetPadded b (fromIntegral (uiBoxPadding ui))
+        b `setPadded` uiBoxPadded ui
         forM_ (uiBoxChildren ui) $ \UIBoxChild{..} -> do
-            uiBoxChildControl' <- toCUIControlIO uiBoxChildControl
+            uiBoxChildControl' <- toCUIIO uiBoxChildControl :: IO CUIControl
             let uiBoxChildStretchy' = if uiBoxChildStretchy then 1 else 0
             c_uiBoxAppend b uiBoxChildControl' uiBoxChildStretchy'
-        return (toCUIControl b)
+        return b
 
 -- ** Checkboxes
 data UICheckbox = UICheckbox { uiCheckboxChecked :: Bool
@@ -407,16 +394,16 @@ data UITab c =
           , uiTabChildren :: [(String, c)]
           }
 
-instance {-# OVERLAPS #-} ToCUIControl c => ToCUIControlIO (UITab c) where
-    toCUIControlIO UITab{..} = do
+instance {-# OVERLAPS #-} ToCUIControlIO' c CUIControl => ToCUIControlIO' (UITab c) CUITabs where
+    toCUIIO UITab{..} = do
         t <- c_uiNewTab
         forM_ uiTabChildren $ \(n, c) -> do
             print n
             n' <- newCString n
-            c' <- toCUIControlIO c
+            c' <- toCUIIO c :: IO CUIControl
             c_uiTabAppend t n' c'
         -- c_uiTabSetMargined t (fromIntegral uiTabMargin) 0
-        return (toCUIControl t)
+        return t
 
 -- ** Groups
 data UIGroup c =
@@ -425,13 +412,25 @@ data UIGroup c =
             , uiGroupChild  :: c
             }
 
-instance {-# OVERLAPS #-} ToCUIControlIO c => ToCUIControlIO (UIGroup c) where
-    toCUIControlIO UIGroup{..} = do
+instance {-# OVERLAPS #-} ToCUIControlIO' (UI ()) CUIBox where
+    toCUIIO :: UI () -> IO CUIBox
+    toCUIIO ui = do
+        (_, c) <- runUI ui
+        toCUIIO c
+
+instance {-# OVERLAPS #-} ToCUIControlIO' (UI ()) CUIControl where
+    toCUIIO :: UI () -> IO CUIControl
+    toCUIIO ui = do
+        cbox <- toCUIIO ui :: IO CUIBox
+        return (toCUIControl cbox)
+
+instance {-# OVERLAPS #-} ToCUIControlIO' c CUIControl => ToCUIControlIO' (UIGroup c) CUIGroup where
+    toCUIIO UIGroup{..} = do
         g <- c_uiNewGroup =<< newCString uiGroupTitle
         c_uiGroupSetMargined g (fromIntegral uiGroupMargin)
-        child <- toCUIControlIO uiGroupChild
+        child <- toCUIIO uiGroupChild :: IO CUIControl
         c_uiGroupSetChild g child
-        return (toCUIControl g)
+        return g
 
 -- ** Sliders
 data UISpinbox = UISpinbox { uiSpinboxValue :: Int

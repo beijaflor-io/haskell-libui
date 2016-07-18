@@ -52,14 +52,13 @@ import           Graphics.LibUI.MonadUI
 --                | UIControlMenuItem UIMenuItem
 --                | UIControlMenu UIMenu
 
-runUILoop ui = run >> putStrLn "I'm still here"
+runUILoop ui = run
   where
     run = do
         uiInit
         (_, cs) <- runUI ui
         mapM_ uiShow cs
         uiOnShouldQuit (uiQuit >> return 0)
-        print "Start"
         uiMain
 
 window :: String -> Int -> Int -> Bool -> UI () -> UI CUIWindow

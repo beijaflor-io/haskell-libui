@@ -103,9 +103,6 @@ vbox = box UIVerticalBox
 hbox :: UI a -> UI a
 hbox = box UIHorizontalBox
 
--- box
---   :: (ToCUIControlIO' r CUIControl) =>
---      (Bool -> [UIBoxChild CUIControl] -> r) -> UI a -> UI a
 box :: (Bool -> [UIBoxChild CUIControl] -> UIBox CUIControl) -> UI a -> UI a
 box boxtype ui = UI $ do
     (x, cs) <- runUI ui -- :: IO (a, [CUIControl])
@@ -118,10 +115,11 @@ menu name items = UI $ do
     c <- toCUIControlIO $ UIMenu name items
     return ((), [])
 
-group :: String -> UI () -> UI CUIGroup
+group :: String -> UI a -> UI (CUIGroup, a)
 group title items = UI $ do
-    c <- toCUIIO $ UIGroup title 1 (vbox items) :: IO CUIGroup
-    return (c, [toCUIControl c])
+    (x, [c]) <- runUI items
+    c <- toCUIIO $ UIGroup title 1 c :: IO CUIGroup
+    return ((c, x), [toCUIControl c])
 
 progressbar :: Int -> UI CUIProgressBar
 progressbar value = UI $ do

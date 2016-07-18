@@ -53,18 +53,6 @@ positionIntervalSource w = do
         return esposition
     fromAddHandler (addHandler esposition) -- >>= changes
 
--- dummyIntervalSource :: CUIWindow -> MomentIO (Event (Future (Int, Int)))
--- dummyIntervalSource _ = do
---     esposition <- liftIO $ do
---         esposition <- newAddHandler
---         let loop = do
---                 fire esposition (0, 0)
---                 threadDelay (1000 * 10)
---                 loop
---         forkIO loop
---         return esposition
---     fromChanges (0, 0) (addHandler esposition) >>= changes
-
 main :: IO ()
 main = do
     escounter <- newAddHandler
@@ -111,3 +99,15 @@ fire = snd
 --         time `setText` ("Simple UI at " ++ show currentTime)
 --         counter `setText` show currentCount
 --         btn `setText` ("Should be simple " ++ show currentCount)
+
+-- dummyIntervalSource :: CUIWindow -> MomentIO (Event (Future (Int, Int)))
+-- dummyIntervalSource _ = do
+--     esposition <- liftIO $ do
+--         esposition <- newAddHandler
+--         let loop = do
+--                 fire esposition (0, 0)
+--                 threadDelay (1000 * 10)
+--                 loop
+--         forkIO loop
+--         return esposition
+--     fromChanges (0, 0) (addHandler esposition) >>= changes

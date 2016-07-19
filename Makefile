@@ -1,4 +1,5 @@
 build: FORCE
+	git submodule update --init
 	stack build --install-ghc --allow-different-user
 
 vagrant-build: FORCE

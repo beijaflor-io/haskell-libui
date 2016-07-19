@@ -20,4 +20,7 @@ provision-ubuntu: FORCE
 ghci: FORCE
 	stack ghc --verbose -- --interactive -L./vendor/libui/build/out/ -lui -optl-Wl,-rpath,'$ORIGIN'
 
+ghci-linux: FORCE
+	stack ghc -- --interactive -L./vendor/libui/build/out/ -lcairo -lui
+
 FORCE:

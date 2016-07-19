@@ -23,7 +23,7 @@ main = do
 
     forkIO $ go opChan 0
 
-    wn <- uiNewWindow "SimpleCounter.hs" 220 190 True
+    wn <- uiNewWindow "SimpleCounter.hs" 220 100 True
     vb <- uiNewVerticalBox
 
     wn `setMargined` True

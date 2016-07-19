@@ -17,7 +17,11 @@ test: FORCE
 provision-ubuntu: FORCE
 	bash -e provision.sh
 
+./vendor/libui/build/out/libui.so: FORCE
+	cd ./vendor/libui && rm -rf build && mkdir build && cd build && cmake .. && make
+
 ghci: FORCE
+	make ./vendor/libui/build/out/libui.so
 	stack ghc --verbose -- --interactive -L./vendor/libui/build/out/ -lui -optl-Wl,-rpath,'$ORIGIN'
 
 ghci-linux: FORCE

@@ -143,11 +143,12 @@ library
       ./vendor/libui/darwin/util.m
       ./vendor/libui/darwin/window.m
   build-depends: async
-               , reactive-banana
                , base >=4.8
                , data-default
+               , free
                , monad-loops
                , mtl
+               , reactive-banana
                , template-haskell
                , time
                , transformers
@@ -171,12 +172,13 @@ executable button-example
   hs-source-dirs:
       examples
   build-depends: async
-               , reactive-banana
                , base
                , data-default
+               , free
                , libui
                , monad-loops
                , mtl
+               , reactive-banana
                , template-haskell
                , time
                , transformers
@@ -188,12 +190,13 @@ executable libui-simple-progressbar-example
   hs-source-dirs:
       examples
   build-depends: async
-               , reactive-banana
                , base
                , data-default
+               , free
                , libui
                , monad-loops
                , mtl
+               , reactive-banana
                , template-haskell
                , time
                , transformers
@@ -205,12 +208,13 @@ executable libui-simple-counter-example
   hs-source-dirs:
       examples
   build-depends: async
-               , reactive-banana
                , base
                , data-default
+               , free
                , libui
                , monad-loops
                , mtl
+               , reactive-banana
                , template-haskell
                , time
                , transformers
@@ -222,12 +226,13 @@ executable libui-simple-control-gallery
   hs-source-dirs:
       examples
   build-depends: async
-               , reactive-banana
                , base
                , data-default
+               , free
                , libui
                , monad-loops
                , mtl
+               , reactive-banana
                , template-haskell
                , time
                , transformers
@@ -239,12 +244,13 @@ executable libui-types-control-gallery
   hs-source-dirs:
       examples
   build-depends: async
-               , reactive-banana
                , base
                , data-default
+               , free
                , libui
                , monad-loops
                , mtl
+               , reactive-banana
                , template-haskell
                , time
                , transformers
@@ -256,12 +262,13 @@ executable libui-reactive-banana-control-gallery
   hs-source-dirs:
       examples
   build-depends: async
-               , reactive-banana
                , base
                , data-default
+               , free
                , libui
                , monad-loops
                , mtl
+               , reactive-banana
                , template-haskell
                , time
                , transformers
@@ -273,12 +280,13 @@ executable libui-reactive-banana-click-to-resize
   hs-source-dirs:
       examples
   build-depends: async
-               , reactive-banana
                , base
                , data-default
+               , free
                , libui
                , monad-loops
                , mtl
+               , reactive-banana
                , template-haskell
                , time
                , transformers
@@ -289,14 +297,15 @@ executable libui-ascii-progress
   main-is: AsciiProgress.hs
   hs-source-dirs:
       examples
-  build-depends: async
-               , reactive-banana
-               , ascii-progress
+  build-depends: ascii-progress
+               , async
                , base
                , data-default
+               , free
                , libui
                , monad-loops
                , mtl
+               , reactive-banana
                , template-haskell
                , time
                , transformers
@@ -307,10 +316,11 @@ test-suite hspec
   main-is: Spec.hs
   type: exitcode-stdio-1.0
   build-depends: QuickCheck
-               , reactive-banana
                , base
+               , free
                , hspec
                , monad-loops
+               , reactive-banana
                , template-haskell
   hs-source-dirs: test
   default-language: Haskell2010

@@ -1,13 +1,14 @@
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE InstanceSigs   #-}
-{-# LANGUAGE RecordWildCards     #-}
-{-# LANGUAGE MultiParamTypeClasses     #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections       #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE OverloadedStrings     #-}
+-- {-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE InstanceSigs          #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 module Graphics.LibUI.Types
   where
 
@@ -24,33 +25,66 @@ import           Data.String
 import           Foreign                  hiding (void)
 import qualified Foreign
 import           Foreign.C
+-- import Data.Data
 
 import           Graphics.LibUI.FFI
 import           Graphics.LibUI.MonadUI
 
--- |
--- Something that can be rendered with libui
 -- class ToCUIControlIO c where
 --     toCUIControlIO :: c -> IO CUIControl
 
--- data UIControl = UIControlWindow UIWindow
---                | UIControlButton UIButton
---                | UIControlBox UIBox
---                | UIControlCheckbox UICheckbox
---                | UIControlEntry UIEntry
---                | UIControlLabel UILabel
---                | UIControlTab UITab
---                | UIControlGroup UIGroup
---                | UIControlSpinbox UISpinbox
---                | UIControlSlider UISlider
---                | UIControlProgressBar UIProgressBar
---                | UIControlSeparator UISeparator
---                | UIControlCombobox UICombobox
---                | UIControlEditableCombobox UIEditableCombobox
---                | UIControlRadioButtons UIRadioButtons
---                | UIControlMultlineEntry UIMultilineEntry
---                | UIControlMenuItem UIMenuItem
---                | UIControlMenu UIMenu
+-- data UIControl c = UIControlWindow (UIWindow c)
+--                 | UIControlButton UIButton
+--                 | UIControlBox (UIBox c)
+--                 | UIControlCheckbox UICheckbox
+--                 | UIControlEntry UIEntry
+--                 | UIControlLabel UILabel
+--                 | UIControlTab (UITab c)
+--                 | UIControlGroup (UIGroup c)
+--                 | UIControlSpinbox UISpinbox
+--                 | UIControlSlider UISlider
+--                 | UIControlProgressBar UIProgressBar
+--                 | UIControlSeparator UISeparator
+--                 | UIControlCombobox UICombobox
+--                 | UIControlEditableCombobox UIEditableCombobox
+--                 | UIControlRadioButtons UIRadioButtons
+--                 | UIControlMultlineEntry UIMultilineEntry
+--                 | UIControlMenuItem UIMenuItem
+--                 | UIControlMenu UIMenu
+--  deriving(Typeable)
+
+--instance {-# OVERLAPS #-} ToCUIControlIO' (UIControl CUIControl) CUIControl where
+--    toCUIIO ctrl = do
+--        ctrl' <- toCUIControl <$> case ctrl of
+--            UIControlWindow c -> toCUIIO c :: IO CUIWindow
+--            UIControlButton c -> toCUIIO c :: IO CUIButton
+--            UIControlBox c -> toCUIIO c :: IO CUIBox
+--            UIControlCheckbox c -> toCUIIO c :: IO CUICheckbox
+--            UIControlEntry c -> toCUIIO c :: IO CUIEntry
+--            UIControlLabel c -> toCUIIO c :: IO CUILabel
+--            UIControlTab c -> toCUIIO c :: IO CUITabs
+--            UIControlGroup c -> toCUIIO c :: IO CUIGroup
+--            UIControlSpinbox c -> toCUIIO c :: IO CUISpinbox
+--            UIControlSlider c -> toCUIIO c :: IO CUISlider
+--            UIControlProgressBar c -> toCUIIO c :: IO CUIProgressBar
+--            UIControlSeparator c -> toCUIIO c :: IO CUISeparator
+--            UIControlCombobox c -> toCUIIO c :: IO CUICombobox
+--            UIControlEditableCombobox c -> toCUIIO c :: IO CUIEditableCombobox
+--            UIControlRadioButtons c -> toCUIIO c :: IO CUIRadioButtons
+--            UIControlMultlineEntry c -> toCUIIO c :: IO CUIMultilineEntry
+--            UIControlMenuItem c -> toCUIIO c :: IO CUIMenuItem
+--            UIControlMenu c -> toCUIIO c :: IO CUIMenu
+--        toCUIIO ctrl'
+
+--data UI' c = UI' [UIControl c]
+--class Monad m => MonadUI m r c where
+--    runMonadUI :: UI' c -> m r
+
+--instance MonadUI IO CUIControl CUIControl where
+--    runMonadUI :: UI' CUIControl -> IO CUIControl
+--    runMonadUI (UI' cs) = do
+--        cs' <- mapM toCUIIO cs
+--        return (head cs')
 
 runUILoop ui = run
   where
@@ -303,10 +337,10 @@ instance {-# OVERLAPPING #-} ToCUIControlIO UIButton where
         return cbtn
 
 -- ** Boxes
-data UIBox c = UIHorizontalBox { uiBoxPadded  :: Bool
+data UIBox c = UIHorizontalBox { uiBoxPadded   :: Bool
                                , uiBoxChildren :: [UIBoxChild c]
                                }
-             | UIVerticalBox { uiBoxPadded  :: Bool
+             | UIVerticalBox { uiBoxPadded   :: Bool
                              , uiBoxChildren :: [UIBoxChild c]
                              }
 

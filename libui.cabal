@@ -21,7 +21,7 @@ library
   -- ld-options: -Wl,-rpath,'$ORIGIN'
   -- ghc-options: -optl-Wl,-rpath,'$ORIGIN'"
   if os(darwin)
-    frameworks: Foundation CoreFoundation AppKit Cocoa WebKit
+    frameworks: Foundation CoreFoundation AppKit Cocoa WebKit MapKit
   if os(linux)
     extra-libraries: gtk-3 glib-2.0 gdk-3 pango-1.0 gobject-2.0 pangocairo-1.0 cairo
     include-dirs:
@@ -106,6 +106,8 @@ library
       ./vendor/libui/unix/window.c
   if os(darwin)
     c-sources:
+      ./cbits/mapview.m
+
       ./vendor/libui/darwin/alloc.m
       ./vendor/libui/darwin/area.m
       ./vendor/libui/darwin/areaevents.m
@@ -242,6 +244,24 @@ executable libui-simple-control-gallery
 
 executable libui-simple-webview
   main-is: SimpleWebview.hs
+  hs-source-dirs:
+      examples
+  build-depends: async
+               , base
+               , data-default
+               , free
+               , libui
+               , monad-loops
+               , mtl
+               , reactive-banana
+               , template-haskell
+               , time
+               , transformers
+  default-language: Haskell2010
+  ghc-options: -threaded
+
+executable libui-simple-mapview
+  main-is: SimpleMapview.hs
   hs-source-dirs:
       examples
   build-depends: async

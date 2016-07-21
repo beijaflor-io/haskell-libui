@@ -1,5 +1,5 @@
-{-# LANGUAGE AllowAmbiguousTypes                    #-}
-{-# LANGUAGE CApiFFI                   #-}
+{-# LANGUAGE AllowAmbiguousTypes        #-}
+{-# LANGUAGE CApiFFI                    #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE ForeignFunctionInterface   #-}
@@ -875,6 +875,25 @@ foreign import capi "ui.h uiWebviewEval"
 
 foreign import capi "ui.h uiNewWebview"
     c_uiNewWebview :: IO CUIWebview
+
+-- ** Maps
+-- *** CUIMapview <- uiMapview
+-- | A Map view
+--
+-- @
+-- -- ...
+-- mv <- uiNewMapview
+-- -- ...
+-- @
+newtype CUIMapview = CUIMapview (Ptr RawMapview)
+  deriving(Show, ToCUIControl)
+data RawMapview
+
+foreign import capi "ui.h uiNewMapview"
+    c_uiNewMapview :: IO CUIMapview
+
+foreign import capi "ui.h uiMapviewSetRegion"
+    c_uiMapviewSetRegion :: CUIMapview -> IO ()
 
 -- * UI Alerts and Dialogs
 foreign import capi "ui.h uiOpenFile"

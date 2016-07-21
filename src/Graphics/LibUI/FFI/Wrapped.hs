@@ -533,7 +533,9 @@ instance HasOnClosing CUIWindow where
 
 instance HasSetChild CUIWindow where
     setChild w c = do
+        putStrLn "before toCUIControlIO"
         c' <- toCUIControlIO c
+        putStrLn "before c_uiWindowSetChild"
         c_uiWindowSetChild w c'
 
 instance HasGetMargined CUIWindow where

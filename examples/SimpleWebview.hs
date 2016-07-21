@@ -31,23 +31,6 @@ main = do
         , ""
         )
 
-    -- TODO - Wrap 'webview `onLoad` do stuff'
-    forkIO $ do
-        threadDelay (1000 * 100)
-        uiQueueMain $ do
-            c <- webview `evalJs`
-                unlines [ "(function() {"
-                        , "  $(function() {"
-                        , "    var button = $('button');"
-                        , "    button.click(function() {"
-                        , "      button.text('Click me (last at: ' + new Date().getTime() + ')');"
-                        , "    });"
-                        , "  });"
-                        , "  return 'OK';"
-                        , "})();"
-                        ]
-            print ("JavaScript button starts with", c)
-
     wn <- uiNewWindow "SimpleCounter.hs" 500 500 True
 
     hb <- uiNewHorizontalBox
@@ -61,6 +44,21 @@ main = do
 
     (e, wc) <- uiNewLogPanel
     hb `appendChild` e
+
+    webview `onLoad` do
+        writeChan wc "Webview loaded"
+        c <- webview `evalJs`
+            unlines [ "(function() {"
+                    , "  $(function() {"
+                    , "    var button = $('button');"
+                    , "    button.click(function() {"
+                    , "      button.text('Click me (last at: ' + new Date().getTime() + ')');"
+                    , "    });"
+                    , "  });"
+                    , "  return 'OK';"
+                    , "})();"
+                    ]
+        writeChan wc (show ("JavaScript button starts with", c))
 
     btn <- uiNewButton "Click to evaluate JS"
     btn `onClick` do

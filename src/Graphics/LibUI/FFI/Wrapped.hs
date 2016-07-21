@@ -159,6 +159,7 @@ module Graphics.LibUI.FFI.Wrapped
 
       -- ** Webviews
     , CUIWebview (..)
+    , onLoad
     , uiNewWebview
     , uiWebviewLoadUrl
     , uiWebviewLoadHtml
@@ -977,6 +978,10 @@ uiWebviewLoadUrl w s = withCString s (c_uiWebviewLoadUrl w)
 uiWebviewLoadHtml w s baseUrl = withCString s $ \s' -> withCString baseUrl $ \baseUrl' ->
     c_uiWebviewLoadHtml w s' baseUrl'
 uiWebviewEval w s = withCString s (c_uiWebviewEval w) >>= peekCString
+
+onLoad webview action = do
+    f <- castFunPtr <$> c_wrap2 (\_ _ -> action)
+    c_uiWebviewOnLoad webview f nullPtr
 
 instance HasLoadUrl CUIWebview where
     loadUrl = uiWebviewLoadUrl

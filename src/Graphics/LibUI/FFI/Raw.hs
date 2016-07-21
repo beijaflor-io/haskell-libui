@@ -867,6 +867,9 @@ foreign import capi "ui.h uiWebviewLoadUrl"
 foreign import capi "ui.h uiWebviewLoadHTML"
     c_uiWebviewLoadHtml :: CUIWebview -> CString -> CString -> IO ()
 
+foreign import capi "ui.h uiWebviewOnLoad"
+    c_uiWebviewOnLoad :: CUIWebview -> FunPtr (CUIWebview -> DataPtr -> IO ()) -> DataPtr -> IO ()
+
 foreign import capi "ui.h uiWebviewEval"
     c_uiWebviewEval :: CUIWebview -> CString -> IO CString
 

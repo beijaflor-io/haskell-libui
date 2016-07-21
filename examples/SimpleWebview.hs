@@ -4,7 +4,7 @@ import           Control.Monad.Loops
 import           Graphics.LibUI
 
 uiNewLogPanel = do
-    e <- uiNewMultilineEntry
+    e <- uiNewNonWrappingMultilineEntry
     e `setReadOnly` True
     uiSetEnabled e False
     wc <- newChan
@@ -20,18 +20,44 @@ main = do
     uiInit
 
     webview <- uiNewWebview
-    webview `loadHtml` ("<h1>Hello</h1>", "")
+    webview `loadHtml`
+        ( unlines [ "<div class=\"container text-center\">"
+                  , "  <h1>Hello</h1>"
+                  , "  <button class=\"btn btn-primary\">Click me</button>"
+                  , "  <link href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css\" rel=\"stylesheet\" integrity=\"sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7\" crossorigin=\"anonymous\">"
+                  , "  <script src=\"https://code.jquery.com/jquery-3.1.0.slim.min.js\"></script>"
+                  , "</div>"
+                  ]
+        , ""
+        )
+
+    -- TODO - Wrap 'webview `onLoad` do stuff'
+    forkIO $ do
+        threadDelay (1000 * 100)
+        uiQueueMain $ do
+            c <- webview `evalJs`
+                unlines [ "(function() {"
+                        , "  $(function() {"
+                        , "    var button = $('button');"
+                        , "    button.click(function() {"
+                        , "      button.text('Click me (last at: ' + new Date().getTime() + ')');"
+                        , "    });"
+                        , "  });"
+                        , "  return 'OK';"
+                        , "})();"
+                        ]
+            print ("JavaScript button starts with", c)
 
     wn <- uiNewWindow "SimpleCounter.hs" 500 500 True
 
     hb <- uiNewHorizontalBox
     vb <- uiNewVerticalBox
 
-    hb `appendChild` vb
+    hb `appendChildStretchy` vb
     wn `setMargined` True
     wn `setChild` hb
 
-    vb `appendChild` webview
+    vb `appendChildStretchy` webview
 
     (e, wc) <- uiNewLogPanel
     hb `appendChild` e
@@ -41,12 +67,16 @@ main = do
         r <- webview `evalJs`
             unlines [ "(function() {"
                     , "  var now = new Date().getTime();"
-                    , "  document.body.appendChild("
-                    , "    document.createElement('br')"
-                    , "  );"
-                    , "  document.body.appendChild("
+                    , "  var log = document.createElement('div');"
+                    , "  log.class = 'container';"
+                    , "  var pre = document.createElement('pre');"
+                    , "  var code = document.createElement('code');"
+                    , "  code.appendChild("
                     , "    document.createTextNode('Hello webview from Haskell ' + now)"
                     , "  );"
+                    , "  pre.appendChild(code);"
+                    , "  log.appendChild(pre);"
+                    , "  document.body.appendChild(log);"
                     , "  return now;"
                     , "})()"
                     ]

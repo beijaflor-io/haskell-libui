@@ -1,7 +1,5 @@
 // 15 august 2015
 #import "uipriv_darwin.h"
-
-#import <stdio.h>
 #import "MapKit/MapKit.h"
 
 struct uiMapview {
@@ -69,12 +67,7 @@ void uiMapviewSetRegion(uiMapview *m) {
 uiMapview *uiNewMapview() {
   uiMapview *m;
   uiDarwinNewControl(uiMapview, m);
-  // fprintf(stderr, "uiMapviewSetParent: %lu\n", &uiMapviewSetParent);
-  // fprintf(stderr, "uiMapviewSetParent: %lu\n", (m->c.c.SetParent));
-  // m->c.c.SetParent = uiMapviewSetParent;
-  // fprintf(stderr, "uiMapviewSetParent: %lu\n", (m->c.c.SetParent));
 
-  NSLog(@"Here");
   m->mapview = [[MKMapView alloc] initWithFrame:NSZeroRect];
   m->mapview.mapType = MKMapTypeStandard;
 
@@ -83,9 +76,6 @@ uiMapview *uiNewMapview() {
     [delegates addObject:mapDelegate];
   }
   [mapDelegate registerMap:m];
-
-  NSLog(@"There");
-  fprintf(stderr, "uiNewMapView -> child: %p\n", m);
 
   return m;
 }

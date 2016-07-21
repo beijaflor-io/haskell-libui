@@ -135,6 +135,7 @@ module Graphics.LibUI.FFI.Wrapped
 
       -- *** Multiline Inputs
     , CUIMultilineEntry (..)
+    , appendText
     , uiNewMultilineEntry
     , uiNewNonWrappingMultilineEntry
 

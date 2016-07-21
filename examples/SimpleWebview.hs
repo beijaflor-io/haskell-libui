@@ -23,15 +23,16 @@ main = do
     webview `loadHtml`
         ( unlines [ "<div class=\"container text-center\">"
                   , "  <h1>Hello</h1>"
-                  , "  <button class=\"btn btn-primary\">Click me</button>"
+                  , "  <button class=\"btn btn-primary\">Click</button>"
                   , "  <link href=\"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css\" rel=\"stylesheet\" integrity=\"sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7\" crossorigin=\"anonymous\">"
                   , "  <script src=\"https://code.jquery.com/jquery-3.1.0.slim.min.js\"></script>"
+                  , "  <hr />"
                   , "</div>"
                   ]
         , ""
         )
 
-    wn <- uiNewWindow "SimpleCounter.hs" 500 500 True
+    wn <- uiNewWindow "SimpleCounter.hs" 600 500 True
 
     hb <- uiNewHorizontalBox
     vb <- uiNewVerticalBox
@@ -52,7 +53,7 @@ main = do
                     , "  $(function() {"
                     , "    var button = $('button');"
                     , "    button.click(function() {"
-                    , "      button.text('Click me (last at: ' + new Date().getTime() + ')');"
+                    , "      button.text('Click (' + Math.round(new Date().getTime() / 1000) + ')');"
                     , "    });"
                     , "  });"
                     , "  return 'OK';"
@@ -66,11 +67,11 @@ main = do
             unlines [ "(function() {"
                     , "  var now = new Date().getTime();"
                     , "  var log = document.createElement('div');"
-                    , "  log.class = 'container';"
+                    , "  log.className = 'container';"
                     , "  var pre = document.createElement('pre');"
                     , "  var code = document.createElement('code');"
                     , "  code.appendChild("
-                    , "    document.createTextNode('Hello webview from Haskell ' + now)"
+                    , "    document.createTextNode('Hello Haskell (' + Math.round(now / 1000) + ')')"
                     , "  );"
                     , "  pre.appendChild(code);"
                     , "  log.appendChild(pre);"

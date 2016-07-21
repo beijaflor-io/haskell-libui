@@ -141,6 +141,7 @@ library
       ./vendor/libui/darwin/tab.m
       ./vendor/libui/darwin/text.m
       ./vendor/libui/darwin/util.m
+      ./vendor/libui/darwin/webview.m
       ./vendor/libui/darwin/window.m
   build-depends: async
                , base >=4.8
@@ -223,6 +224,24 @@ executable libui-simple-counter-example
 
 executable libui-simple-control-gallery
   main-is: SimpleControlGallery.hs
+  hs-source-dirs:
+      examples
+  build-depends: async
+               , base
+               , data-default
+               , free
+               , libui
+               , monad-loops
+               , mtl
+               , reactive-banana
+               , template-haskell
+               , time
+               , transformers
+  default-language: Haskell2010
+  ghc-options: -threaded
+
+executable libui-simple-webview
+  main-is: SimpleWebview.hs
   hs-source-dirs:
       examples
   build-depends: async

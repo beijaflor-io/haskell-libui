@@ -846,6 +846,33 @@ foreign import capi "ui.h uiMenuItemChecked"
 foreign import capi "ui.h uiMenuItemSetChecked"
     c_uiMenuItemSetChecked :: CUIMenuItem -> CInt -> IO ()
 
+-- ** Webviews
+-- *** CUIWebview <- uiWebview
+-- | A webview
+--
+-- @
+-- -- ...
+-- wv <- uiNewWebview
+-- wv `loadUrl` "https://google.com"
+-- wv `evalJs` "document.write('Buya');"
+-- -- ...
+-- @
+newtype CUIWebview = CUIWebview (Ptr RawWebview)
+  deriving(Show, ToCUIControl)
+data RawWebview
+
+foreign import capi "ui.h uiWebviewLoadUrl"
+    c_uiWebviewLoadUrl :: CUIWebview -> CString -> IO ()
+
+foreign import capi "ui.h uiWebviewLoadHTML"
+    c_uiWebviewLoadHtml :: CUIWebview -> CString -> CString -> IO ()
+
+foreign import capi "ui.h uiWebviewEval"
+    c_uiWebviewEval :: CUIWebview -> CString -> IO CString
+
+foreign import capi "ui.h uiNewWebview"
+    c_uiNewWebview :: IO CUIWebview
+
 -- * UI Alerts and Dialogs
 foreign import capi "ui.h uiOpenFile"
     c_uiOpenFile :: CUIWindow -> IO CString

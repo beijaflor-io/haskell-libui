@@ -156,6 +156,13 @@ module Graphics.LibUI.FFI.Wrapped
     , uiMenuItemEnable
     , uiMenuItemDisable
 
+      -- ** Webviews
+    , CUIWebview (..)
+    , uiNewWebview
+    , uiWebviewLoadUrl
+    , uiWebviewLoadHtml
+    , uiWebviewEval
+
       -- ** UI Alerts and Dialogs
     , uiOpenFile
     , uiSaveFile
@@ -199,6 +206,10 @@ module Graphics.LibUI.FFI.Wrapped
 
     , HasAppendOption (..)
     , ToAppendInput (..)
+
+    , HasLoadUrl (..)
+    , HasLoadHtml (..)
+    , HasEvalJs (..)
 
     , appendIOChild
     , appendIOChildStretchy
@@ -361,6 +372,16 @@ class HasAppendChild s where
 class HasRemoveChild s where
     -- | Remove the child at index from this control
     removeChild :: s -> Int -> IO ()
+
+class HasLoadUrl w where
+    loadUrl :: w -> String -> IO ()
+
+class HasLoadHtml w where
+    loadHtml :: w -> (String, FilePath) -> IO ()
+
+class HasEvalJs w where
+    evalJs :: w -> String -> IO String
+
 
 -- | Append an action returning a child to this control
 appendIOChild :: (HasAppendChild s, ToCUIControlIO c) => s -> IO c -> IO ()
@@ -948,6 +969,22 @@ instance HasGetChecked CUIMenuItem where
 instance HasSetChecked CUIMenuItem where
     setChecked c False = c_uiMenuItemSetChecked c 0
     setChecked c True = c_uiMenuItemSetChecked c 1
+
+-- * Webviews
+uiNewWebview = c_uiNewWebview
+uiWebviewLoadUrl w s = withCString s (c_uiWebviewLoadUrl w)
+uiWebviewLoadHtml w s baseUrl = withCString s $ \s' -> withCString baseUrl $ \baseUrl' ->
+    c_uiWebviewLoadHtml w s' baseUrl'
+uiWebviewEval w s = withCString s (c_uiWebviewEval w) >>= peekCString
+
+instance HasLoadUrl CUIWebview where
+    loadUrl = uiWebviewLoadUrl
+
+instance HasEvalJs CUIWebview where
+    evalJs = uiWebviewEval
+
+instance HasLoadHtml CUIWebview where
+    loadHtml w = uncurry (uiWebviewLoadHtml w)
 
 -- * UI Alerts and Dialogs
 

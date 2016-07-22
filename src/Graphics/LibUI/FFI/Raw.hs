@@ -808,6 +808,17 @@ data RawMenu
 foreign import capi "ui.h uiMenuAppendItem"
     c_uiMenuAppendItem :: CUIMenu -> CString -> IO CUIMenuItem
 
+foreign import capi "ui.h uiMenuAppendItemWith"
+    c_uiMenuAppendItemWith
+       :: CUIMenu
+       -> CString
+       -- ^ Menu title
+       -> CString
+       -- ^ Menu key
+       -> CString
+       -- ^ Menu target selector
+       -> IO CUIMenuItem
+
 foreign import capi "ui.h uiMenuAppendCheckItem"
     c_uiMenuAppendCheckItem :: CUIMenu -> CString -> IO CUIMenuItem
 

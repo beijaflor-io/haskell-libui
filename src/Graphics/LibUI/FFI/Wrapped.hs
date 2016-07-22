@@ -147,6 +147,7 @@ module Graphics.LibUI.FFI.Wrapped
     , CUIMenu (..)
     , uiNewMenu
     , uiMenuAppendItem
+    , uiMenuAppendItemWith
     , uiMenuAppendCheckItem
     , uiMenuAppendQuitItem
     , uiMenuAppendPreferencesItem
@@ -950,6 +951,9 @@ uiNewSpinbox low high = c_uiNewSpinbox (fromIntegral low) (fromIntegral high)
 
 uiNewMenu s = newCString s >>= c_uiNewMenu
 uiMenuAppendItem m s = withCString s (c_uiMenuAppendItem m)
+uiMenuAppendItemWith m s k sl =
+    withCString s $ \s' -> withCString k $ \k' -> withCString sl $ \sl' ->
+    c_uiMenuAppendItemWith m s' k' sl'
 uiMenuAppendCheckItem m s = withCString s (c_uiMenuAppendCheckItem m)
 uiMenuAppendQuitItem = c_uiMenuAppendQuitItem
 uiMenuAppendAboutItem = c_uiMenuAppendAboutItem

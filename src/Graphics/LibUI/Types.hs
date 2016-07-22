@@ -25,6 +25,7 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans
 import           Control.Monad.Writer
 import           Data.Default
+import           Data.Maybe
 import           Data.String
 import           Foreign                  hiding (void)
 import qualified Foreign
@@ -34,6 +35,8 @@ import           Foreign.C
 import           Graphics.LibUI.FFI
 import           Graphics.LibUI.MonadUI
 
+headMaybe [] = Nothing
+headMaybe (c:_) = Just c
 
 data UIControl c next = UIControlWindow (UIWindow c) next
                       | UIControlButton UIButton next
@@ -156,8 +159,9 @@ menu name items = UI $ do
 
 group :: String -> UI a -> UI (CUIGroup, a)
 group title items = UI $ do
-    (x, [c]) <- runUI items
-    c <- toCUIIO $ UIGroup title 1 c :: IO CUIGroup
+    (x, child) <- runUI items
+    child' <- toCUIIO child :: IO CUIBox
+    c <- toCUIIO $ UIGroup title 1 child' :: IO CUIGroup
     return ((c, x), [toCUIControl c])
 
 progressbar :: Int -> UI CUIProgressBar

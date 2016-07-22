@@ -57,29 +57,47 @@ makeOutputs = do
     outC `setChild` rhb
     return (outC, cw, webview)
 
+uiNewEditMenu = uiNewMenu "Edit" >>= \menu -> do
+    uiMenuAppendQuitItem menu
+    uiMenuAppendItemWith menu "Undo" "z" "undo:"
+    uiMenuAppendItemWith menu "Redo" "r" "redo:"
+    uiMenuAppendSeparator menu
+    uiMenuAppendItemWith menu "Copy" "c" "copy:"
+    uiMenuAppendItemWith menu "Cut" "x" "cut:"
+    uiMenuAppendItemWith menu "Paste" "v" "paste:"
+    uiMenuAppendItemWith menu "Select All" "a" "selectAll:"
+
 main :: IO ()
 main = do
     uiInit
 
-    wn <- uiNewWindow "markd - Pandoc on GUIs" 600 500 True
-    hb <- uiNewHorizontalBox
-    hb `setPadded` True
+    uiNewEditMenu
 
-    wn `setMargined` True
-    wn `setChild` hb
+    uiNewMenu "Stuff" >>= \menu -> do
+        uiMenuAppendItem menu "Open"
+        uiMenuAppendItem menu "Save"
 
     (inpC, cr, me) <- makeInputs
-    hb `appendChildStretchy` inpC
     (outC, cw, webview) <- makeOutputs
-    hb `appendChildStretchy` outC
 
     let runRender' = runRender cr cw me webview
     me `onChange` runRender'
     cr `onChange` runRender'
     cw `onChange` runRender'
 
-    uiWindowCenter wn
+    hb <- uiNewHorizontalBox
+    hb `setPadded` True
+    hb `appendChildStretchy` inpC
+    hb `appendChildStretchy` outC
+
+    wn <- uiNewWindow "markd - Pandoc on GUIs" 700 500 True
+    wn `setChild` hb
+    wn `setMargined` True
     wn `onClosing` uiQuit
-    uiOnShouldQuit (uiQuit >> return 0)
+    uiOnShouldQuit $ do
+        uiQuit
+        return 1
+
+    uiWindowCenter wn
     uiShow wn
     uiMain

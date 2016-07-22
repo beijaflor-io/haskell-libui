@@ -24,7 +24,14 @@ runRender cr cw me webview = do
                                wf def inp
                            (_, IOByteStringWriter wf) ->
                                ByteString.unpack <$> wf def inp
-                webview `loadHtml` (out, "")
+                webview `loadHtml`
+                    ( unlines [ "<link href=\"http://bootswatch.com/readable/bootstrap.min.css\"rel=\"stylesheet\">"
+                              , "<div class=\"container\">"
+                              , out
+                              , "</div>"
+                              ]
+                    , ""
+                    )
 
 makeInputs = do
     cr <- uiNewCombobox

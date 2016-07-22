@@ -819,6 +819,17 @@ foreign import capi "ui.h uiMenuAppendItemWith"
        -- ^ Menu target selector
        -> IO CUIMenuItem
 
+foreign import capi "ui.h uiMenuAppendItemWithDefaultTarget"
+    c_uiMenuAppendItemWithDefaultTarget
+       :: CUIMenu
+       -> CString
+       -- ^ Menu title
+       -> CString
+       -- ^ Menu key
+       -> CString
+       -- ^ Menu target selector
+       -> IO CUIMenuItem
+
 foreign import capi "ui.h uiMenuAppendCheckItem"
     c_uiMenuAppendCheckItem :: CUIMenu -> CString -> IO CUIMenuItem
 

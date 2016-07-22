@@ -148,6 +148,7 @@ module Graphics.LibUI.FFI.Wrapped
     , uiNewMenu
     , uiMenuAppendItem
     , uiMenuAppendItemWith
+    , uiMenuAppendItemWithDefaultTarget
     , uiMenuAppendCheckItem
     , uiMenuAppendQuitItem
     , uiMenuAppendPreferencesItem
@@ -249,7 +250,7 @@ import           Graphics.LibUI.FFI.Raw
 --     uiMain
 -- @
 uiInit :: IO ()
-uiInit = do
+uiInit =
     alloca $ \ptr -> do
         poke ptr (CSize (fromIntegral (sizeOf (CSize 0))))
         c_uiInit ptr
@@ -418,8 +419,7 @@ class HasGetMargined w where
 -- * CUIControl API
 -- | Displays a control ('c_uiControlShow')
 uiShow :: ToCUIControl a => a -> IO ()
-uiShow c = do
-    c_uiControlShow (toCUIControl c)
+uiShow c = c_uiControlShow (toCUIControl c)
 
 -- | Hides a control ('c_uiControlHide')
 uiHide :: ToCUIControl a => a -> IO ()
@@ -733,9 +733,7 @@ instance HasGetText CUIButton where
 instance HasSetText CUIButton where
     setText btn s = withCString s (c_uiButtonSetText btn)
 
-uiNewButton str = do
-    o <- withCString str c_uiNewButton
-    return o
+uiNewButton str = withCString str c_uiNewButton
 
 -- *** CUICheckbox <- uiCheckbox
 instance HasSetText CUICheckbox where
@@ -954,6 +952,9 @@ uiMenuAppendItem m s = withCString s (c_uiMenuAppendItem m)
 uiMenuAppendItemWith m s k sl =
     withCString s $ \s' -> withCString k $ \k' -> withCString sl $ \sl' ->
     c_uiMenuAppendItemWith m s' k' sl'
+uiMenuAppendItemWithDefaultTarget m s k sl =
+    withCString s $ \s' -> withCString k $ \k' -> withCString sl $ \sl' ->
+    c_uiMenuAppendItemWithDefaultTarget m s' k' sl'
 uiMenuAppendCheckItem m s = withCString s (c_uiMenuAppendCheckItem m)
 uiMenuAppendQuitItem = c_uiMenuAppendQuitItem
 uiMenuAppendAboutItem = c_uiMenuAppendAboutItem

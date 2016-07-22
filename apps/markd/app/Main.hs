@@ -57,8 +57,17 @@ makeOutputs = do
     outC `setChild` rhb
     return (outC, cw, webview)
 
-uiNewEditMenu = uiNewMenu "Edit" >>= \menu -> do
+data FileMenu c = FileMenu c c c c
+
+uiNewFileMenu = uiNewMenu "File" >>= \menu -> do
     uiMenuAppendQuitItem menu
+    FileMenu
+        <$> uiMenuAppendItemWithDefaultTarget menu "New" "n" "onClicked:"
+        <*> uiMenuAppendItemWithDefaultTarget menu "Open" "o" "onClicked:"
+        <*> uiMenuAppendItemWithDefaultTarget menu "Save" "s" "onClicked:"
+        <*> uiMenuAppendItemWithDefaultTarget menu "Save As" "S" "onClicked:"
+
+uiNewEditMenu = uiNewMenu "Edit" >>= \menu -> do
     uiMenuAppendItemWith menu "Undo" "z" "undo:"
     uiMenuAppendItemWith menu "Redo" "r" "redo:"
     uiMenuAppendSeparator menu
@@ -67,16 +76,7 @@ uiNewEditMenu = uiNewMenu "Edit" >>= \menu -> do
     uiMenuAppendItemWith menu "Paste" "v" "paste:"
     uiMenuAppendItemWith menu "Select All" "a" "selectAll:"
 
-main :: IO ()
-main = do
-    uiInit
-
-    uiNewEditMenu
-
-    uiNewMenu "Stuff" >>= \menu -> do
-        uiMenuAppendItem menu "Open"
-        uiMenuAppendItem menu "Save"
-
+makeWindow (FileMenu n o s sa) = do
     (inpC, cr, me) <- makeInputs
     (outC, cw, webview) <- makeOutputs
 
@@ -97,6 +97,36 @@ main = do
     uiOnShouldQuit $ do
         uiQuit
         return 1
+
+    n `onClick` do
+        me `setText` ""
+        runRender'
+    o `onClick` do
+        mfp <- uiOpenFile wn
+        case mfp of
+            Just fp -> do
+                fc <- readFile fp
+                me `setText` fc
+                runRender'
+            Nothing -> return ()
+    -- s `onClick` do
+    -- sa `onClick` do
+    --     mfp <- uiOpenFile wn
+    --     print mfp
+    return wn
+
+main :: IO ()
+main = do
+    uiInit
+
+    fileMenu <- uiNewFileMenu
+    uiNewEditMenu
+
+    uiNewMenu "Stuff" >>= \menu -> do
+        uiMenuAppendItem menu "Open"
+        uiMenuAppendItem menu "Save"
+
+    wn <- makeWindow fileMenu
 
     uiWindowCenter wn
     uiShow wn

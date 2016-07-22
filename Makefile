@@ -5,6 +5,9 @@ build: FORCE
 vagrant-build: FORCE
 	vagrant up && vagrant provision && vagrant ssh -c 'cd /vagrant && make build'
 
+markd: FORCE
+	cd ./apps/markd/ && make
+
 libui: FORCE
 	cd ./vendor/libui && mkdir -p build && cd build && rm -rf * && cmake .. && make examples
 

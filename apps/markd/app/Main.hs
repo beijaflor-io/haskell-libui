@@ -1,6 +1,4 @@
-import           Control.Concurrent
 import           Control.Monad
-import           Control.Monad.Loops
 import           Graphics.LibUI
 import           Text.Pandoc
 import qualified Data.ByteString.Lazy.Char8 as ByteString (pack, unpack)
@@ -28,18 +26,7 @@ runRender cr cw me webview = do
                                ByteString.unpack <$> wf def inp
                 webview `loadHtml` (out, "")
 
-main :: IO ()
-main = do
-    uiInit
-
-    webview <- uiNewWebview
-
-    wn <- uiNewWindow "SimpleCounter.hs" 600 500 True
-    hb <- uiNewHorizontalBox
-
-    wn `setMargined` True
-    wn `setChild` hb
-
+makeInputs = do
     cr <- uiNewCombobox
     cr `appendOptions` (map fst readers)
     cr `setValue` 2
@@ -50,10 +37,13 @@ main = do
 
     lhb `appendChild` cr
     lhb `appendChildStretchy` me
-    hb `appendChildStretchy` lhb
-    sep <- uiNewHorizontalSeparator
-    hb `appendChild` sep
+    inpC <- uiNewGroup "Input"
+    inpC `setMargined` True
+    inpC `setChild` lhb
+    return (inpC, cr, me)
 
+makeOutputs = do
+    webview <- uiNewWebview
     cw <- uiNewCombobox
     cw `appendOptions` (map fst writers)
     cw `setValue` 8
@@ -62,50 +52,34 @@ main = do
     rhb `setPadded` True
     rhb `appendChild` cw
     rhb `appendChildStretchy` webview
-    hb `appendChildStretchy` rhb
+    outC <- uiNewGroup "Output"
+    outC `setMargined` True
+    outC `setChild` rhb
+    return (outC, cw, webview)
+
+main :: IO ()
+main = do
+    uiInit
+
+    wn <- uiNewWindow "markd - Pandoc on GUIs" 600 500 True
+    hb <- uiNewHorizontalBox
+    hb `setPadded` True
+
+    wn `setMargined` True
+    wn `setChild` hb
+
+    (inpC, cr, me) <- makeInputs
+    hb `appendChildStretchy` inpC
+    (outC, cw, webview) <- makeOutputs
+    hb `appendChildStretchy` outC
 
     let runRender' = runRender cr cw me webview
     me `onChange` runRender'
     cr `onChange` runRender'
     cw `onChange` runRender'
 
-    -- webview `onLoad` do
-    --     void $ webview `evalJs`
-    --         unlines [ "(function() {"
-    --                 , "  $(function() {"
-    --                 , "    var button = $('button');"
-    --                 , "    button.click(function() {"
-    --                 , "      button.text('Click (' + Math.round(new Date().getTime() / 1000) + ')');"
-    --                 , "    });"
-    --                 , "  });"
-    --                 , "  return 'OK';"
-    --                 , "})();"
-    --                 ]
-
-    -- btn <- uiNewButton "Click to evaluate JS"
-    -- btn `onClick` do
-    --     void $ webview `evalJs`
-    --         unlines [ "(function() {"
-    --                 , "  var now = new Date().getTime();"
-    --                 , "  var log = document.createElement('div');"
-    --                 , "  log.className = 'container';"
-    --                 , "  var pre = document.createElement('pre');"
-    --                 , "  var code = document.createElement('code');"
-    --                 , "  code.appendChild("
-    --                 , "    document.createTextNode('Hello Haskell (' + Math.round(now / 1000) + ')')"
-    --                 , "  );"
-    --                 , "  pre.appendChild(code);"
-    --                 , "  log.appendChild(pre);"
-    --                 , "  document.body.appendChild(log);"
-    --                 , "  return now;"
-    --                 , "})()"
-    --                 ]
-    -- vb `appendChild` btn
-
-    wn `onClosing` uiQuit
-
     uiWindowCenter wn
-
+    wn `onClosing` uiQuit
     uiOnShouldQuit (uiQuit >> return 0)
     uiShow wn
     uiMain

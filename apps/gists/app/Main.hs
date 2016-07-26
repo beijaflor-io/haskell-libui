@@ -1,6 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
+import           Control.Concurrent
+import           Control.Lens
 import           Control.Monad
-import           Graphics.LibUI.FFI
+import           Data.Aeson
+import           Data.Aeson.Lens
 import qualified Data.ByteString.Lazy.Char8 as ByteString (pack, unpack)
+import qualified Data.Text                  as Text (unpack)
+import           Graphics.LibUI.FFI
+import           Network.Wreq
 
 data FileMenu c = FileMenu c c c c
 
@@ -37,11 +44,25 @@ makeControls = do
 
     return g
 
-makeWindow (FileMenu n o s sa) = do
+makeGist :: Value -> IO CUIGroup
+makeGist gist = do
+    g <- uiNewGroup (Text.unpack (gist ^. key "url" . _String))
+    l <- uiNewLabel (Text.unpack (gist ^. key "created_at" . _String))
+    g `setChild` l
+    return g
+
+makeWindow gistsC (FileMenu n o s sa) = do
     hb <- uiNewHorizontalBox
     hb `setPadded` True
 
     hb `appendIOChild` makeControls
+
+    g <- uiNewGroup "Gists"
+    vb <- uiNewVerticalBox
+    -- me <- uiNewMultilineEntry
+    -- vb `appendChildStretchy` me
+    g `setChild` vb
+    hb `appendChildStretchy` g
 
     wn <- uiNewWindow "gists" 700 500 True
     wn `setChild` hb
@@ -52,16 +73,35 @@ makeWindow (FileMenu n o s sa) = do
         uiQuit
         return 1
 
+    forkIO $ forever $ do
+        gists <- readChan gistsC
+        uiQueueMain $ do
+            forM_ gists $ \gist -> do
+                gist <- makeGist (head gists)
+                vb `appendChild` gist
+            print gists
+            -- me `setText` show gists
+
     return wn
+
+getGists :: String -> IO [Value]
+getGists str = do
+    res <- get "https://api.github.com/gists" >>= asJSON
+    return $ res ^. responseBody
 
 main :: IO ()
 main = do
     uiInit
 
+    gistsC <- newChan
+    forkIO $ do
+        gists <- getGists "yamadapc"
+        writeChan gistsC gists
+
     fileMenu <- uiNewFileMenu
     uiNewEditMenu
 
-    wn <- makeWindow fileMenu
+    wn <- makeWindow gistsC fileMenu
 
     uiWindowCenter wn
     uiShow wn

@@ -147,6 +147,7 @@ library
       ./vendor/libui/darwin/window.m
   build-depends: async
                , base >=4.8
+               , c-storable-deriving
                , data-default
                , free
                , monad-loops
@@ -176,6 +177,7 @@ executable button-example
       examples
   build-depends: async
                , base
+               , c-storable-deriving
                , data-default
                , free
                , libui
@@ -194,6 +196,7 @@ executable libui-simple-progressbar-example
       examples
   build-depends: async
                , base
+               , c-storable-deriving
                , data-default
                , free
                , libui
@@ -212,6 +215,7 @@ executable libui-simple-counter-example
       examples
   build-depends: async
                , base
+               , c-storable-deriving
                , data-default
                , free
                , libui
@@ -230,6 +234,7 @@ executable libui-simple-control-gallery
       examples
   build-depends: async
                , base
+               , c-storable-deriving
                , data-default
                , free
                , libui
@@ -244,10 +249,15 @@ executable libui-simple-control-gallery
 
 executable libui-simple-webview
   main-is: SimpleWebview.hs
+  if os(darwin)
+    buildable: True
+  else
+    buildable: False
   hs-source-dirs:
       examples
   build-depends: async
                , base
+               , c-storable-deriving
                , data-default
                , free
                , libui
@@ -262,10 +272,15 @@ executable libui-simple-webview
 
 executable libui-simple-mapview
   main-is: SimpleMapview.hs
+  if os(darwin)
+    buildable: True
+  else
+    buildable: False
   hs-source-dirs:
       examples
   build-depends: async
                , base
+               , c-storable-deriving
                , data-default
                , free
                , libui
@@ -284,6 +299,7 @@ executable libui-types-control-gallery
       examples
   build-depends: async
                , base
+               , c-storable-deriving
                , data-default
                , free
                , libui
@@ -302,6 +318,7 @@ executable libui-reactive-banana-control-gallery
       examples
   build-depends: async
                , base
+               , c-storable-deriving
                , data-default
                , free
                , libui
@@ -320,6 +337,7 @@ executable libui-reactive-banana-click-to-resize
       examples
   build-depends: async
                , base
+               , c-storable-deriving
                , data-default
                , free
                , libui
@@ -339,6 +357,7 @@ executable libui-ascii-progress
   build-depends: ascii-progress
                , async
                , base
+               , c-storable-deriving
                , data-default
                , free
                , libui
@@ -356,6 +375,7 @@ test-suite hspec
   type: exitcode-stdio-1.0
   build-depends: QuickCheck
                , base
+               , c-storable-deriving
                , free
                , hspec
                , monad-loops

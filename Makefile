@@ -8,6 +8,9 @@ vagrant-build: FORCE
 markd: FORCE
 	cd ./apps/markd/ && make
 
+gists: FORCE
+	cd ./apps/gists/ && make
+
 libui: FORCE
 	cd ./vendor/libui && mkdir -p build && cd build && rm -rf * && cmake .. && make examples
 

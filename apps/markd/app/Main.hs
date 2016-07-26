@@ -25,8 +25,7 @@ runRender cr cw me webview = do
                            (_, IOByteStringWriter wf) ->
                                ByteString.unpack <$> wf def inp
                 webview `loadHtml`
-                    ( unlines [ "<link href=\"http://bootswatch.com/readable/bootstrap.min.css\"rel=\"stylesheet\">"
-                              , "<div class=\"container\">"
+                    ( unlines [ "<div class=\"container\">"
                               , out
                               , "</div>"
                               ]

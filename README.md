@@ -12,6 +12,17 @@ Useful top-level modules are:
 Which export general and OSX specific functionality in raw C and "wrapped"
 Haskell APIs.
 
+This package needs some splitting and cleaning-up, as well as some more work,
+but the bits exposed by `Graphics.LibUI.FFI` (`Graphics.LibUI.FFI.Wrapped`,
+`Graphics.LibUI.FFI.Raw` & OSX variants) should be ok to use.
+
+There're several examples on the `examples` directory. The `Simple...` examples
+only use the `Graphics.LibUI.FFI` part of the library and are what you want to
+look.at first.
+
+`apps/markd` is an example application (currently only working on OSX), which
+previews how a file is rendered by `pandoc`.
+
 - - -
 
 - [x] Raw FFI available in `Graphics.LibUI.FFI.Raw`

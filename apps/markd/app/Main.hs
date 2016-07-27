@@ -116,6 +116,7 @@ makeWindow (FileMenu n o s sa) = do
                 me `setText` fc
                 runRender'
             Nothing -> return ()
+    -- TODO - On "Save" & "Save As..." save pandoc's output
     -- s `onClick` do
     -- sa `onClick` do
     --     mfp <- uiOpenFile wn
@@ -128,10 +129,6 @@ main = do
 
     fileMenu <- uiNewFileMenu
     uiNewEditMenu
-
-    uiNewMenu "Stuff" >>= \menu -> do
-        uiMenuAppendItem menu "Open"
-        uiMenuAppendItem menu "Save"
 
     wn <- makeWindow fileMenu
 

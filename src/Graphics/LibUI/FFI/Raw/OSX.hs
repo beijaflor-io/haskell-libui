@@ -1,3 +1,16 @@
+{-# LANGUAGE AllowAmbiguousTypes        #-}
+{-# LANGUAGE CApiFFI                    #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE ForeignFunctionInterface   #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InterruptibleFFI           #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UndecidableInstances       #-}
 {-|
 Module: Graphics.LibUI.FFI.Raw.OSX
 Description: OSX extras to the libui library
@@ -12,79 +25,7 @@ import           Foreign
 import           Foreign.C
 import           Foreign.CStorable
 import           GHC.Generics
-
--- ** Custom Controls
--- *** CUIArea <- uiArea
-newtype CUIArea = CUIArea (Ptr RawArea)
-  deriving(Show, ToCUIControl)
-data RawArea
-
-newtype CUIDrawContext = CUIDrawContext (Ptr RawDrawContext)
-  deriving(Show, Generic, CStorable, Storable)
-data RawDrawContext
-
-data CUIAreaDrawParams =
-    CUIAreaDrawParams { cuiAreaDrawDrawContext :: CUIDrawContext
-                      , cuiAreaDrawAreaWidth   :: CDouble
-                      , cuiAreaDrawAreaHeight  :: CDouble
-                      , cuiAreaDrawClipX       :: CDouble
-                      , cuiAreaDrawClipY       :: CDouble
-                      , cuiAreaDrawClipWidth   :: CDouble
-                      , cuiAreaDrawClipHeight  :: CDouble
-                      }
-  deriving(Show, CStorable, Generic)
-
-instance Storable CUIAreaDrawParams where
-    peek = cPeek
-    poke = cPoke
-    alignment = cAlignment
-    sizeOf = cSizeOf
-
-newtype CUIAreaMouseEvent = CUIAreaMouseEvent (Ptr RawAreaMouseEvent)
-  deriving(Show)
-
-data RawAreaMouseEvent
-
-data CUIAreaHandler =
-    CUIAreaHandler { cuiAreaHandlerDraw :: FunPtr (Ptr CUIAreaHandler -> CUIArea -> Ptr CUIAreaDrawParams -> IO ())
-                   , cuiAreaHandlerMouseEvent :: FunPtr (Ptr CUIAreaHandler -> CUIArea -> CUIAreaMouseEvent -> IO ())
-                   }
-  deriving(Show, CStorable, Generic)
-
-instance Storable CUIAreaHandler where
-    peek = cPeek
-    poke = cPoke
-    alignment = cAlignment
-    sizeOf = cSizeOf
-
-foreign import capi "ui.h uiAreaSetSize"
-    c_uiAreaSetSize :: CUIArea -> CInt -> CInt -> IO ()
-
-foreign import capi "ui.h uiAreaQueueRedrawAll"
-    c_uiAreaQueueRedrawAll :: CUIArea -> IO ()
-
-foreign import capi "ui.h uiAreaScrollTo"
-    c_uiAreaScrollTo
-        :: CUIArea
-        -> CDouble
-        -- ^ x
-        -> CDouble
-        -- ^ y
-        -> CDouble
-        -- ^ width
-        -> CDouble
-        -- ^ height
-        -> IO ()
-
-foreign import capi "ui.h uiNewArea"
-    c_uiNewArea :: Ptr CUIAreaHandler -> IO CUIArea
-
-foreign import capi "ui.h uiNewScrollingArea"
-    c_uiNewScrollingArea :: Ptr CUIAreaHandler -> CInt -> CInt -> IO CUIArea
-
--- Internal to haskell-libui
--- foreign import capi "haskell/extra.h ui"
---     c_uiAreaSetSize :: CUIArea -> CInt -> CInt -> IO ()
+import           Graphics.LibUI.FFI.Raw
 
 -- ** Webviews
 -- *** CUIWebview <- uiWebview

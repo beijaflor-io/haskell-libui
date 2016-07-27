@@ -1,5 +1,6 @@
 import           Control.Monad
 import           Graphics.LibUI
+import           Graphics.LibUI.OSX
 import           Text.Pandoc
 import qualified Data.ByteString.Lazy.Char8 as ByteString (pack, unpack)
 

@@ -157,10 +157,13 @@ library
                , time
                , transformers
   exposed-modules: Graphics.LibUI
+                 , Graphics.LibUI.OSX
 
                  , Graphics.LibUI.FFI
                  , Graphics.LibUI.FFI.Raw
+                 , Graphics.LibUI.FFI.Raw.OSX
                  , Graphics.LibUI.FFI.Wrapped
+                 , Graphics.LibUI.FFI.Wrapped.OSX
 
                  , Graphics.LibUI.Types
                  , Graphics.LibUI.MonadUI

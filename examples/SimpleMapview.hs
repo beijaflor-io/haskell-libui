@@ -2,6 +2,7 @@ import           Control.Concurrent
 import           Control.Monad
 import           Control.Monad.Loops
 import           Graphics.LibUI
+import           Graphics.LibUI.OSX
 
 main :: IO ()
 main = do

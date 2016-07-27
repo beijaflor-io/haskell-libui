@@ -18,6 +18,8 @@ This package needs some splitting and cleaning-up, as well as some more work,
 but the bits exposed by `Graphics.LibUI.FFI` (`Graphics.LibUI.FFI.Wrapped`,
 `Graphics.LibUI.FFI.Raw` & OSX variants) should be ok to use.
 
+They aren't used in anything serious right now. You'd be courageous to do it.
+
 ## Usage
 ```haskell
 import Graphics.LibUI

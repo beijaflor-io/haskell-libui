@@ -3,7 +3,7 @@ version:             0.1.0.0
 synopsis:            Initial project template from stack
 description:         Please see README.md
 homepage:            https://github.com/yamadapc/gists#readme
-license:             BSD3
+license:             GPLv3
 license-file:        LICENSE
 author:              Pedro Tacla Yamada
 maintainer:          tacla.yamada@gmail.com

@@ -15,7 +15,7 @@
 Module: Graphics.LibUI.FFI.Raw.OSX
 Description: OSX extras to the libui library
 Copyright: (c) Copyright Pedro Tacla Yamada 2016
-License: MIT
+License: GPLv3
 Maintainer: tacla.yamada@gmail.com
 Stability: experimental
 |-}

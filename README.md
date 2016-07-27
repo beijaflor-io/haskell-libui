@@ -1,5 +1,7 @@
 # haskell-libui
 - - -
+[**GPLv3 Licensed**](#License)
+- - -
 
 Haskell bindings to the [`libui`](https://github.com/andlabs/libui) C library.
 
@@ -109,4 +111,4 @@ Tested on OSX and Ubuntu 14.04. A Vagrantfile is available.
 
 ## License
 This code is published under the **GPLv3** license, commercial licensing will be
-available from **beijaflor.io**
+available from [**beijaflor.io**](https://beijaflor.io)

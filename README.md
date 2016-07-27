@@ -3,6 +3,17 @@
 
 Haskell bindings to the [`libui`](https://github.com/andlabs/libui) C library.
 
+The library is currently only an FFI wrapper.
+
+Useful top-level modules are:
+- `Graphics.LibUI`
+- `Graphics.LibUI.OSX`
+
+Which export general and OSX specific functionality in raw C and "wrapped"
+Haskell APIs.
+
+- - -
+
 - [x] Raw FFI available in `Graphics.LibUI.FFI.Raw`
   * [x] All functions from the FFI mirror their `libui` names prefixed with `c_`
   * [x] Document the FFI

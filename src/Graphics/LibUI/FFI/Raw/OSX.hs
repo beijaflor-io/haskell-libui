@@ -76,6 +76,10 @@ foreign import capi "ui.h uiNewMapview"
 foreign import capi "ui.h uiMapviewSetRegion"
     c_uiMapviewSetRegion :: CUIMapview -> IO ()
 
+-- ** Menu Items
+-- | In OSX, there're APIs for defining keyboard shortcut handlers bound to menu
+-- items, without which the UX is really bad. Namely the 'Edit' menu items
+-- aren't possible without this (see the `markd` example).
 foreign import capi "ui.h uiMenuAppendItemWith"
     c_uiMenuAppendItemWith
        :: CUIMenu
@@ -87,6 +91,8 @@ foreign import capi "ui.h uiMenuAppendItemWith"
        -- ^ Menu target selector
        -> IO CUIMenuItem
 
+-- | Like c_uiMenuAppendItemWith, but uses the application "menuManager" as the
+-- target
 foreign import capi "ui.h uiMenuAppendItemWithDefaultTarget"
     c_uiMenuAppendItemWithDefaultTarget
        :: CUIMenu

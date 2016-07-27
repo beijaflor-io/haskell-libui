@@ -17,6 +17,10 @@ module Graphics.LibUI.FFI.Wrapped.OSX
     , uiWebviewLoadHtml
     , uiWebviewEval
 
+      -- ** Extra menubar operations
+    , uiMenuAppendItemWith
+    , uiMenuAppendItemWithDefaultTarget
+
     , HasLoadUrl (..)
     , HasLoadHtml (..)
     , HasEvalJs (..)
@@ -64,3 +68,21 @@ instance HasEvalJs CUIWebview where
 
 instance HasLoadHtml CUIWebview where
     loadHtml w = uncurry (uiWebviewLoadHtml w)
+
+-- * Extra menu operations
+-- | In OSX, there're APIs for defining keyboard shortcut handlers bound to menu
+-- items, without which the UX is really bad. Namely the 'Edit' menu items
+-- aren't possible without this (see the `markd` example).
+--
+-- This is essentially just calling a Cocoa API
+uiMenuAppendItemWith m s k sl =
+    withCString s $ \s' -> withCString k $ \k' -> withCString sl $ \sl' ->
+    c_uiMenuAppendItemWith m s' k' sl'
+
+-- | Like c_uiMenuAppendItemWith, but uses the application "menuManager" as the
+-- target
+--
+-- This is essentially just calling a Cocoa API
+uiMenuAppendItemWithDefaultTarget m s k sl =
+    withCString s $ \s' -> withCString k $ \k' -> withCString sl $ \sl' ->
+    c_uiMenuAppendItemWithDefaultTarget m s' k' sl'

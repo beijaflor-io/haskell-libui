@@ -1,6 +1,6 @@
 # haskell-libui
 - - -
-[**GPLv3 Licensed**](#License)
+[**GPLv3 Licensed**](#LICENSE)
 - - -
 
 Haskell bindings to the [`libui`](https://github.com/andlabs/libui) C library.

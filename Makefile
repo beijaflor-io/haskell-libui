@@ -2,6 +2,10 @@ build: FORCE
 	git submodule update --init
 	stack build --install-ghc --allow-different-user
 
+READMEExample: FORCE
+	stack ghc --package libui ./READMEExample.hs
+	rm READMEExample.{o,hi}
+
 vagrant-build: FORCE
 	vagrant up && vagrant provision && vagrant ssh -c 'cd /vagrant && make build'
 

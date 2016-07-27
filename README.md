@@ -9,12 +9,39 @@ Useful top-level modules are:
 - `Graphics.LibUI`
 - `Graphics.LibUI.OSX`
 
-Which export general and OSX specific functionality in raw C and "wrapped"
+They export general and OSX specific functionality in raw C and "wrapped"
 Haskell APIs.
+
+**Important**
 
 This package needs some splitting and cleaning-up, as well as some more work,
 but the bits exposed by `Graphics.LibUI.FFI` (`Graphics.LibUI.FFI.Wrapped`,
 `Graphics.LibUI.FFI.Raw` & OSX variants) should be ok to use.
+
+## Usage
+```haskell
+import Graphics.LibUI
+main = do
+    uiInit
+    wn <- uiNewWindow "Haskell on GUIs" 220 100 True
+    btn <- uiNewButton "Click me"
+    wn `setChild` btn
+    wn `setMargined` True
+    uiShow wn
+    uiWindowCenter wn
+    uiMain
+```
+![](/screenshot.png)
+
+You can run this example with:
+```
+git clone https://github.com/beijaflor-io/haskell-libui
+cd haskell-libui
+make READMEExample
+./READMEExample
+```
+
+## Examples
 
 There're several examples on the `examples` directory. The `Simple...` examples
 only use the `Graphics.LibUI.FFI` part of the library and are what you want to
@@ -24,6 +51,7 @@ look.at first.
 previews how a file is rendered by `pandoc`.
 
 - - -
+## Roadmap
 
 - [x] Raw FFI available in `Graphics.LibUI.FFI.Raw`
   * [x] All functions from the FFI mirror their `libui` names prefixed with `c_`
@@ -44,6 +72,34 @@ previews how a file is rendered by `pandoc`.
         * `data UI = UI [UIControl]`
         * `class MonadUI m b where runUI :: UI -> m b`
         * `instance MonadUI IO CUIControl where runUI = toCUIControlIO`
+
+- - -
+
+The aim of `Graphics.LibUI.Types` and friends is to end-up with code that looks
+like:
+```haskell
+runUILoop do
+    menu "File" [ "Open"
+                , "Save"
+                , UIMenuItemQuit
+                ]
+    void $ window "libui Control Gallery" 640 300 True $
+        void $ tabs $ do
+            tab "Basic Controls" $ do
+                hbox $
+                    button "Button"
+                    checkbox "Checkbox"
+                label "This is a label. Right now, labels can only span one line."
+                void $ group "Entries" $
+                    form [ formItem "Entry" (entry "")
+                         , formItem "Entry" (entry "")
+                         , formItem "Search Entry" (searchEntry "")
+                         ]
+            tab "Basic Controls" $ hbox $ do
+                void $ group "Numbers" (return ())
+                void $ group "Lists" (return ())
+            tab "Data Choosers" mempty
+```
 
 - - -
 

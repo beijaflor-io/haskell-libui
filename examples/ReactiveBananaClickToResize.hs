@@ -25,7 +25,7 @@ counterButton opts = do
     updateUI btn currentCount =
         btn `setText` (uiButtonText opts ++ " " ++ show currentCount)
 
-showText c = setText c . show
+showText c = uiQueueMain . setText c . show
 
 clickSource c = liftIO $ do
     esclick <- newAddHandler
@@ -69,8 +69,9 @@ main = do
                                       }
         wrap wnd
 
-        liftIO $ do
-            uiWindowCenter wnd
+        liftIO $ forkIO $ do
+            threadDelay (1000 * 1000 * 3)
+            uiQueueMain $ uiWindowCenter wnd
             network <- compile $ do
                 epositionInterval <- positionIntervalSource wnd
                 reactimate $ showText counter <$> epositionInterval

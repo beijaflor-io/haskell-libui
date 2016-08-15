@@ -1,7 +1,7 @@
 name:                libui
 version:             0.1.0.0
 homepage:            https://github.com/beijaflor-io/haskell-libui
-license:             MIT
+license:             GPL-3
 license-file:        LICENSE
 author:              Pedro Tacla Yamada
 maintainer:          tacla.yamada@gmail.com

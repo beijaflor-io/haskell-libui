@@ -45,10 +45,12 @@ make READMEExample
 ```
 
 ## Examples
-
 There're several examples on the `examples` directory. The `Simple...` examples
 only use the `Graphics.LibUI.FFI` part of the library and are what you want to
-look.at first.
+look at first.
+
+The `ReactiveBanana...` examples are playgrounds for showing how you could wrap
+the callback based API with FRP without much work.
 
 ### markd - A simple GUI for Pandoc using a webview
 `apps/markd` is an example application (currently only working on OSX), which

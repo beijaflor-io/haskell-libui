@@ -50,6 +50,7 @@ There're several examples on the `examples` directory. The `Simple...` examples
 only use the `Graphics.LibUI.FFI` part of the library and are what you want to
 look.at first.
 
+### markd - A simple GUI for Pandoc using a webview
 `apps/markd` is an example application (currently only working on OSX), which
 previews how a file is rendered by `pandoc`.
 

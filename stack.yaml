@@ -2,7 +2,8 @@ flags: {}
 extra-package-dbs: []
 packages:
 - '.'
-- ./vendor/haskell-ascii-progress
+- location: ./vendor/haskell-ascii-progress
+  extra-dep: true
 extra-deps:
 - c-storable-deriving-0.1.3
 - pqueue-1.3.1.1

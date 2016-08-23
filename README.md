@@ -31,10 +31,10 @@ main = do
     wn `setChild` btn
     wn `setMargined` True
     uiShow wn
-    uiWindowCenter wn
     uiMain
 ```
 ![](/screenshot.png)
+![](/screenshot-linux.png)
 
 You can run this example with:
 ```

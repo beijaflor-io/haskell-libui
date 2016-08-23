@@ -11,7 +11,9 @@ Useful top-level modules are:
 - `Graphics.LibUI.OSX`
 
 They export general and OSX specific functionality in raw C and "wrapped"
-Haskell APIs.
+Haskell APIs. Currently implemented for OSX only are wrappers for Webkit and a
+partial wrapper to Mapviews, both of which have examples. This should go back to
+upstream `libui` once it's solid.
 
 **Important**
 

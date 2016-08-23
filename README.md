@@ -106,7 +106,7 @@ runUILoop do
 
 - - -
 
-Tested on OSX and Ubuntu 14.04. A Vagrantfile is available.
+Tested on OSX, Fedora and Ubuntu 14.04. A Vagrantfile is available.
 
 ## License
 This code is published under the **GPLv3** license

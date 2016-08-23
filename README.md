@@ -55,6 +55,7 @@ the callback based API with FRP without much work.
 ### markd - A simple GUI for Pandoc using a webview
 `apps/markd` is an example application (currently only working on OSX), which
 previews how a file is rendered by `pandoc`.
+![](https://www.dropbox.com/s/oxva6l87qjg24yf/Screenshot%202016-08-16%2000.15.01.png?dl=1) 
 
 - - -
 ## Roadmap

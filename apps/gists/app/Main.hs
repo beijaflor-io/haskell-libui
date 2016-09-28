@@ -6,7 +6,8 @@ import           Data.Aeson
 import           Data.Aeson.Lens
 import qualified Data.ByteString.Lazy.Char8 as ByteString (pack, unpack)
 import qualified Data.Text                  as Text (unpack)
-import           Graphics.LibUI.FFI
+import           Graphics.LibUI
+import           Graphics.LibUI.OSX
 import           Network.Wreq
 
 data FileMenu c = FileMenu c c c c
@@ -62,7 +63,7 @@ makeWindow gistsC (FileMenu n o s sa) = do
     -- me <- uiNewMultilineEntry
     -- vb `appendChildStretchy` me
     g `setChild` vb
-    hb `appendChildStretchy` g
+    hb `appendChild` g
 
     wn <- uiNewWindow "gists" 700 500 True
     wn `setChild` hb

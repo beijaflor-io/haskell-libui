@@ -1,5 +1,9 @@
 name:                libui
 version:             0.1.0.0
+synopsis: Bindings to the libui C library
+description: Full bindings and OSX extensions to the libui C library. The
+             packaged version of this library might not work properly yet.
+             Please refer to the GitHub project page.
 homepage:            https://github.com/beijaflor-io/haskell-libui
 license:             GPL-3
 license-file:        LICENSE
@@ -146,7 +150,7 @@ library
       ./vendor/libui/darwin/webview.m
       ./vendor/libui/darwin/window.m
   build-depends: async
-               , base >=4.8
+               , base >=4.8 && <5
                , c-storable-deriving
                , data-default
                , free

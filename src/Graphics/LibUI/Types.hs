@@ -245,19 +245,6 @@ form cs = UI $ do
     return (c, [toCUIControl c])
 formItem x e = (x, e)
 
--- stuff = runUILoop ui
---   where
---     ui = UI $ do
---         let window = def { uiWindowTitle = "Hey there"
---                          , uiWindowChild = def { uiBoxChildren = [ UIBoxChild False
---                                                                               (UILabel "Hey")
---                                                                  ]
---                                                }
---                          , uiWindowOnClosing = Just $ print "Bye!"
---                          }
---         c <- toCUIControlIO window
---         return ((), [ c ])
-
 stuff :: IO ()
 stuff = runUILoop ui
   where

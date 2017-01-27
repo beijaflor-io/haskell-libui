@@ -194,34 +194,6 @@ foreign import capi "ui.h uiWindowSetTitle"
         -- ^ A new title
         -> IO ()
 
--- | Get the window position
-foreign import capi "ui.h uiWindowPosition"
-    c_uiWindowPosition
-        :: CUIWindow
-        -> Ptr CInt
-        -- ^ Pointer to x coordinate
-        -> Ptr CInt
-        -- ^ Pointer to y coordinate
-        -> IO ()
-
--- | Set the window position
-foreign import capi "ui.h uiWindowSetPosition"
-    c_uiWindowSetPosition
-        :: CUIWindow
-        -> CInt
-        -- ^ The x coordinate
-        -> CInt
-        -- ^ The y coordinate
-        -> IO ()
-
--- | Center the window
-foreign import capi "ui.h uiWindowCenter"
-    c_uiWindowCenter :: CUIWindow -> IO ()
-
--- | Add a callback to the window's position
-foreign import capi "ui.h uiWindowOnPositionChanged"
-    c_uiWindowOnPositionChanged :: CUIWindow -> FunPtr (CUIWindow -> DataPtr -> IO ()) -> DataPtr -> IO ()
-
 -- | Get the size of the window's content
 foreign import capi "ui.h uiWindowContentSize"
     c_uiWindowContentSize :: CUIWindow -> Ptr CInt -> Ptr CInt -> IO ()

@@ -39,7 +39,6 @@ module Graphics.LibUI.FFI.Wrapped
       -- ** Windows
     , CUIWindow (..)
     , uiNewWindow
-    , uiWindowCenter
     , getBorderless
     , setBorderless
     , getContentSize
@@ -477,28 +476,8 @@ setFullscreen w b = c_uiWindowSetFullscreen w (boolToNum b)
 uiWindowGetTitle :: CUIWindow -> IO String
 uiWindowGetTitle = c_uiWindowTitle >=> peekCString
 
-uiWindowGetPosition :: CUIWindow -> IO (Int, Int)
-uiWindowGetPosition w = alloca $ \x -> alloca $ \y -> do
-    c_uiWindowPosition w x y
-    x' <- peek x
-    y' <- peek y
-    return (fromIntegral x', fromIntegral y')
-
-uiWindowSetPosition :: CUIWindow -> (Int, Int) -> IO ()
-uiWindowSetPosition w (x, y) =
-    c_uiWindowSetPosition w (fromIntegral x) (fromIntegral y)
-
-uiWindowCenter :: CUIWindow -> IO ()
-uiWindowCenter = c_uiWindowCenter
-
 instance HasSetTitle CUIWindow where
     setTitle w t = withCString t (c_uiWindowSetTitle w)
-
-instance HasSetPosition CUIWindow where
-    setPosition = uiWindowSetPosition
-
-instance HasGetPosition CUIWindow where
-    getPosition = uiWindowGetPosition
 
 instance HasGetTitle CUIWindow where
     getTitle w = c_uiWindowTitle w >>= peekCString
@@ -520,12 +499,6 @@ instance HasGetMargined CUIWindow where
 
 instance HasSetMargined CUIWindow where
     setMargined w m = c_uiWindowSetMargined w (boolToNum m)
-
-instance HasOnPositionChanged CUIWindow where
-    onPositionChanged w a = do
-        f <- castFunPtr <$> c_wrap2 (\_ _ -> a)
-        c_uiWindowOnPositionChanged w f nullPtr
-
 
 -- ** Labels
 -- *** CUILabel <- uiLabel

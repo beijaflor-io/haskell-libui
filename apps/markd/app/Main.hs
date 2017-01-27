@@ -132,6 +132,5 @@ main = do
 
     wn <- makeWindow fileMenu
 
-    uiWindowCenter wn
     uiShow wn
     uiMain

@@ -21,10 +21,6 @@ main = do
     wn `setChild` mapview
     putStrLn "[haskell] Map appended"
 
-    -- c_uiMapviewSetRegion mapview
-
-    uiWindowCenter wn
-
     putStrLn "[haskell] Displaying GUI..."
     wn `onClosing` uiQuit
     uiOnShouldQuit (uiQuit >> return 0)

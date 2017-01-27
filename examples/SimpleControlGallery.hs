@@ -191,7 +191,6 @@ main = do
     tabs `appendTabMargined` ("Data Choosers", dataChoosersTab)
 
     uiShow wn
-    -- uiWindowCenter wn
 
     uiMainSteps
     whileM_ getHasMain $ do

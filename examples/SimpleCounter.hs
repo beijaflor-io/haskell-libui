@@ -38,10 +38,6 @@ main = do
 
     uiShow wn
 
-    -- forkIO $ do
-        -- threadDelay (1000 * 1000)
-        -- uiWindowCenter wn
-
     uiMainSteps
     whileM_ getHasMain $ do
         h <- uiMainStep 0

@@ -104,6 +104,5 @@ main = do
 
     wn <- makeWindow gistsC fileMenu
 
-    uiWindowCenter wn
     uiShow wn
     uiMain

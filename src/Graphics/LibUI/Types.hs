@@ -245,32 +245,6 @@ form cs = UI $ do
     return (c, [toCUIControl c])
 formItem x e = (x, e)
 
-stuff :: IO ()
-stuff = runUILoop ui
-  where
-    ui :: UI ()
-    ui = do
-        menu "File" [ "Open"
-                    , "Save"
-                    , UIMenuItemQuit
-                    ]
-        void $ window "libui Control Gallery" 640 300 True $
-            void $ tabs $ do
-                tab "Basic Controls" $ do
-                    hbox $
-                        -- button "Button"
-                        checkbox "Checkbox"
-                    label "This is a label. Right now, labels can only span one line."
-                    void $ group "Entries" $
-                        form [ formItem "Entry" (entry "")
-                             , formItem "Entry" (entry "")
-                             , formItem "Search Entry" (searchEntry "")
-                             ]
-                tab "Basic Controls" $ hbox $ do
-                    void $ group "Numbers" (return ())
-                    void $ group "Lists" (return ())
-                tab "Data Choosers" mempty
-
 -- ** Windows
 instance {-# OVERLAPS #-} ToCUIControlIO' [CUIControl] CUIBox where
     toCUIIO cs = do

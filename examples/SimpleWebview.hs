@@ -85,8 +85,6 @@ main = do
 
     wn `onClosing` uiQuit
 
-    uiWindowCenter wn
-
     uiOnShouldQuit (uiQuit >> return 0)
     uiShow wn
     uiMain

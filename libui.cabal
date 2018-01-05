@@ -91,6 +91,7 @@ library
       ./vendor/libui/unix/entry.c
       ./vendor/libui/unix/fontbutton.c
       ./vendor/libui/unix/form.c
+      ./vendor/libui/unix/future.c
       ./vendor/libui/unix/graphemes.c
       ./vendor/libui/unix/grid.c
       ./vendor/libui/unix/group.c
